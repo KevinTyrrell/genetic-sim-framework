@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 
-public abstract class Cost<T extends Agent> implements Consumer<T>
+public class Cost<T extends Agent> implements Consumer<T>
 {
     private final List<T> agents;
     private final Map<T, Integer> costs;

@@ -22,8 +22,8 @@ import bitset.Conversions;
 import blackjack.Player;
 import blackjack.card.Card;
 import blackjack.card.Face;
+import javafx.beans.property.ObjectProperty;
 
-import java.lang.ref.WeakReference;
 import java.util.BitSet;
 import java.util.Objects;
 import java.util.Random;
@@ -57,7 +57,7 @@ public class Agent extends Player
      * Reference to the dealer's hidden card.
      * Used to determine whether to hit or not.
      */
-    private final WeakReference<Card> dealersCard;
+    private final ObjectProperty<Card> dealersCard;
 
     /**
      * Three dimensional weight array.
@@ -73,7 +73,7 @@ public class Agent extends Player
      * @param dealersCard Reference to the dealer's card which is revealed to the agent.
      * @see Player#hit()
      */
-    public Agent(final WeakReference<Card> dealersCard)
+    public Agent(final ObjectProperty<Card> dealersCard)
     {
         for (int i = 0; i < POSSIBLE_DEALER_CARDS; i++)
             for (int j = 0; j < POSSIBLE_SCORES; j++)
@@ -115,15 +115,6 @@ public class Agent extends Player
         assert maxScore >= 2;
         assert maxScore <= 20;
         return weights[dealerCard.getFace().ordinal()][score - 2][maxScore - 2];
-    }
-
-    /**
-     * @param weight Weight towards a particular situation.
-     * @return true if the agent decides to be affirmative.
-     */
-    public boolean affirmative(final int weight)
-    {
-        return rand.nextInt() < weight;
     }
 
     /**
