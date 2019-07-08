@@ -19,21 +19,19 @@
 package genetic;
 
 import bitset.Conversions;
+import bitset.Mutations;
 import blackjack.Player;
 import blackjack.card.Card;
 import blackjack.card.Face;
-import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 
 import java.util.BitSet;
 import java.util.Objects;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
+
+import static blackjack.Blackjack.rand;
 
 public class Agent extends Player
 {
-    /* Random number generator for initializing agents. */
-    private static final Random rand = ThreadLocalRandom.current();
-
     /**
      * Number of possible outcomes when a dealer reveals his hidden card.
      */
@@ -43,7 +41,12 @@ public class Agent extends Player
      * Minimum score is 2 with Ace, Ace and maximum score is 10, 10
      * which is possible in a variety of combinations.
      */
-    private static final int POSSIBLE_SCORES = 18;
+    private static final int POSSIBLE_SCORES = 19;
+
+    /**
+     * Two possible circumstances: having an ace or not.
+     */
+    private static final int ACE_POSSIBILITY = 2;
 
     /**
      * @return Random weight between [0, Integer.MAX_VALUE].
@@ -57,7 +60,7 @@ public class Agent extends Player
      * Reference to the dealer's hidden card.
      * Used to determine whether to hit or not.
      */
-    private final ObjectProperty<Card> dealersCard;
+    private final ReadOnlyObjectProperty<Card> dealersCard;
 
     /**
      * Three dimensional weight array.
@@ -65,7 +68,7 @@ public class Agent extends Player
      * 2nd dimension: what score the agent currently has ( [2, 20] ).
      * 3rd dimension: what maximum score the agent could have ( [2, 20] ).
      */
-    private int[][][] weights = new int[POSSIBLE_DEALER_CARDS][POSSIBLE_SCORES][POSSIBLE_SCORES];
+    private int[][][] weights = new int[POSSIBLE_DEALER_CARDS][POSSIBLE_SCORES][ACE_POSSIBILITY];
 
     /**
      * Constructs an agent with completely random weights.
@@ -73,11 +76,11 @@ public class Agent extends Player
      * @param dealersCard Reference to the dealer's card which is revealed to the agent.
      * @see Player#hit()
      */
-    public Agent(final ObjectProperty<Card> dealersCard)
+    public Agent(final ReadOnlyObjectProperty<Card> dealersCard)
     {
         for (int i = 0; i < POSSIBLE_DEALER_CARDS; i++)
             for (int j = 0; j < POSSIBLE_SCORES; j++)
-                for (int k = 0; k < POSSIBLE_SCORES; k++)
+                for (int k = 0; k < ACE_POSSIBILITY; k++)
                     weights[i][j][k] = randomWeight();
         this.dealersCard = Objects.requireNonNull(dealersCard);
     }
@@ -91,7 +94,8 @@ public class Agent extends Player
      */
     @Override public boolean hit()
     {
-        return getWeight(Objects.requireNonNull(dealersCard.get()), getScore(), getMaximumScore()) < randomWeight();
+        return getWeight(Objects.requireNonNull(dealersCard.get().getFace()),
+                getScore(), hasAce()) < randomWeight();
     }
 
     /**
@@ -102,19 +106,17 @@ public class Agent extends Player
      * becomes more assure of his decision. A weight of
      * INTEGER.MAX_VALUE / 2 would indicate a coin flip.
      *
-     * @param dealerCard The card the dealer has revealed.
+     * @param dealerCard The card face the dealer has revealed.
      * @param score The agent's current score.
-     * @param maxScore The agent's maximum score.
+     * @param hasAce Whether or not the agent has an ace.
      * @return weight for that given circumstance.
      */
-    public int getWeight(final Card dealerCard, final int score, final int maxScore)
+    public int getWeight(final Face dealerCard, final int score, final boolean hasAce)
     {
         assert dealerCard != null;
         assert score >= 2;
         assert score <= 20;
-        assert maxScore >= 2;
-        assert maxScore <= 20;
-        return weights[dealerCard.getFace().ordinal()][score - 2][maxScore - 2];
+        return weights[dealerCard.ordinal()][score - 2][hasAce ? 1 : 0];
     }
 
     /**
@@ -132,18 +134,39 @@ public class Agent extends Player
         /* For every gene, recalculate new values. */
         for (int i = 0; i < POSSIBLE_DEALER_CARDS; i++)
             for (int j = 0; j < POSSIBLE_SCORES; j++)
-                for (int k = 0; k < POSSIBLE_SCORES; k++)
+                for (int k = 0; k < ACE_POSSIBILITY; k++)
                 {
                     final int fatherWeight = weights[i][j][k];
                     final int motherWeight = mother.weights[i][j][k];
                     /* Crossover the father and mother's weights into a new weight. */
                     final BitSet childCross = Crossover.uniform(
-                            Conversions.convert(fatherWeight), Conversions.convert(motherWeight));
+                            Conversions.convert(fatherWeight), Conversions.convert(motherWeight), rand);
+                    Mutations.flip(childCross, 0.30f);
                     final long childWeight = Conversions.convert(childCross);
                     assert childWeight <= Integer.MAX_VALUE; // Should not be possible.
                     child.weights[i][j][k] = (int)childWeight;
                 }
 
         return child;
+    }
+
+    public void printWeights()
+    {
+        for (int i = 2; i <= 20; i++) System.out.printf("                   %d", i);
+        for (final Face f : Face.set())
+        {
+            System.out.printf("\n%-6s:", f.getName());
+            for (int score = 2; score <= 20; score++)
+            {
+                double weight = getWeight(f, score, false);
+                double weightAce = getWeight(f, score, true);
+                weight *= 100.0 / Integer.MAX_VALUE;
+                weightAce *= 100.0 / Integer.MAX_VALUE;
+                weight = Math.round(weight * 100) / 100;
+                weightAce = Math.round(weightAce * 100) / 100;
+                System.out.printf(" %6s%% (%6s%%) |", String.valueOf(weight), String.valueOf(weightAce));
+            }
+        }
+        System.out.println();
     }
 }

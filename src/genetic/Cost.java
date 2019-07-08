@@ -20,6 +20,7 @@ package genetic;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.ToIntFunction;
 
 public class Cost<T extends Agent> implements Consumer<T>
@@ -93,6 +94,18 @@ public class Cost<T extends Agent> implements Consumer<T>
             throw new IllegalArgumentException(String.format(
                     "Request of %d agents exceeds current size of %d", numAgents, size));
         agents.sort(comparator);
-        return Collections.unmodifiableList(agents.subList(0, numAgents + 1));
+        return Collections.unmodifiableList(agents.subList(0, numAgents));
+    }
+
+    /**
+     * Retrieves the statistics of the generation's costs.
+     *
+     * @return Summary statistics of how the generation performed.
+     */
+    public IntSummaryStatistics costAssessment()
+    {
+        return costs.values().stream()
+                .mapToInt(i -> i)
+                .summaryStatistics();
     }
 }

@@ -20,6 +20,7 @@ package genetic;
 
 import java.util.BitSet;
 import java.util.Objects;
+import java.util.Random;
 
 public interface Crossover
 {
@@ -120,14 +121,7 @@ public interface Crossover
      */
     static BitSet uniform(final BitSet father, final BitSet mother, float inheritRatio)
     {
-        checkBitSets(father, mother);
-        if (inheritRatio < 0 || inheritRatio > 1)
-            throw new IllegalArgumentException("Paternal bias must be within bounds [0.0, 1.0]");
-        final int len = Math.max(father.length(), mother.length());
-        final BitSet child = new BitSet();
-        for (int i = 0; i < len; i++)
-            child.set(i, Math.random() < inheritRatio ? father.get(i) : mother.get(i));
-        return child;
+        return uniform(father, mother, inheritRatio, null);
     }
 
     /**
@@ -143,7 +137,54 @@ public interface Crossover
      */
     static BitSet uniform(final BitSet father, final BitSet mother)
     {
-        return uniform(father, mother, 0.5f);
+        return uniform(father, mother, 0.5f, null);
+    }
+
+    /**
+     * Performs a uniform crossover.
+     * For each bit of the child, there will be an equally-likely chance
+     * that he will inherit a bit from the mother instead of the father.
+     *
+     * This is equivalent to calling Crossover.uniform(father, mother, 0.5f, null).
+     *
+     * @param father Father bits to crossover.
+     * @param mother Mother bits to crossover.
+     * @param rand  Random number generator to use.
+     * @return newly birthed child.
+     */
+    static BitSet uniform(final BitSet father, final BitSet mother, final Random rand)
+    {
+        return uniform(father, mother, 0.5f, rand);
+    }
+
+    /**
+     * Performs a uniform crossover.
+     * Allows control over the likelihood of bits being inherited from father.
+     * A bias of 0.0 would yield 100% of bits to be inherited from the father.
+     * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
+     * For an even likelihood (0.5), Crossover.uniform(BitSet, BitSet) should be used.
+     *
+     * @param father Father bits to crossover.
+     * @param mother Mother bits to crossover.
+     * @param inheritRatio likelihood of bits being inherited from father:mother.
+     * @param rand  Random number generator to use.
+     * @return newly birthed child.
+     */
+    static BitSet uniform(final BitSet father, final BitSet mother, final float inheritRatio, final Random rand)
+    {
+        checkBitSets(father, mother);
+        if (inheritRatio < 0 || inheritRatio > 1)
+            throw new IllegalArgumentException("Paternal bias must be within bounds [0.0, 1.0]");
+        final int len = Math.max(father.length(), mother.length());
+        final BitSet child = new BitSet();
+
+        if (rand == null)
+            for (int i = 0; i < len; i++)
+                child.set(i, Math.random() < inheritRatio ? father.get(i) : mother.get(i));
+        else for (int i = 0; i < len; i++)
+            child.set(i, rand.nextFloat() < inheritRatio ? father.get(i) : mother.get(i));
+
+        return child;
     }
 
     private static void copyBits(final BitSet host, final int hostLen, final BitSet target, final int from, final int to)
