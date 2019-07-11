@@ -23,37 +23,74 @@ import java.util.Random;
 import java.util.function.IntBinaryOperator;
 
 /**
- * <description>
+ * Defines an agent: a subject who reproduces and
+ * has a series of weights geared towards learning.
  *
- * @param 
- * @see 
+ * @param <T> Concrete agent type.
  * @since 1.0
  */
 public interface Agent<T>
 {
+    /**
+     * Retrieves the agent's weights.
+     * Weights represent the agent's current alignment.
+     * For agents with multiple weight dimensions, a single
+     * dimension array should be used for all dimensions.
+     * 
+     * @return Array of weights.
+     */
     int[] getWeights();
 
-    default Agent<T> reproduce(final Agent<T> mother, final Agent<T> child, final Random generator)
+    /**
+     * Inherits genes from two specified parents.
+     * Genes are distributed through uniform crossover.
+     * If a different crossover method is preferred, then
+     * Agent.inherit(father, mother, callback) should be used.
+     * 
+     * @param mother Mother to inherit genes from.
+     * @param father Father to inherit genes from.
+     * @param generator Random number sequence to use.
+     * @see Crossover#uniform(int, int, Random) 
+     */
+    default void inherit(final Agent<T> father, final Agent<T> mother, final Random generator)
     {
-        checkPtrs(mother, child);
-        final int[] childWeights = child.getWeights();
+        checkPtrs(father, mother);
+        Objects.requireNonNull(generator);
+        final int[] fWeights = father.getWeights();
+        final int[] mWeights = mother.getWeights();
         final int[] weights = getWeights();
-        for (int i = 0; i < weights.length; i++)
-            childWeights[i] = 0;
-        return null;
+        for (int i = 0; i < weights.length; i++) 
+            weights[i] = Crossover.uniform(fWeights[i], mWeights[i], generator);
     }
 
-    default Agent<T> reproduce(final Agent<T> mother, final Agent<T> child, final IntBinaryOperator crossCallback)
+    /**
+     * Inherits genes from two specified parents.
+     * For each gene, the callback will be used to 
+     * determine the child's new gene weight.
+     * Typically, a type of 'Crossover' is used.
+     * 
+     * @param mother Mother to inherit genes from.
+     * @param father Father to inherit genes from.
+     * @param crossCallback Callback for the specific crossover.
+     * @see Crossover
+     */
+    default void inherit(final Agent<T> father, final Agent<T> mother, final IntBinaryOperator crossCallback)
     {
-        return null;
+        checkPtrs(father, mother);
+        Objects.requireNonNull(crossCallback);
+        final int[] fWeights = father.getWeights();
+        final int[] mWeights = mother.getWeights();
+        final int[] weights = getWeights();
+        for (int i = 0; i < weights.length; i++) 
+            weights[i] = crossCallback.applyAsInt(fWeights[i], mWeights[i]);
     }
 
     /* Ensure reproduction parameters make sense. */
-    private void checkPtrs(final Object mother, final Object child)
+    private void checkPtrs(final Object father, final Object mother)
     {
-        if (Objects.requireNonNull(mother) == this)
-            throw new IllegalArgumentException("Agent cannot reproduce with itself");
-        if (Objects.requireNonNull(child) == mother || child == this)
+        if (Objects.requireNonNull(mother) == Objects.requireNonNull(father))
+            throw new IllegalArgumentException("Father and mother must be unique");
+        if (father == this || mother == this)
             throw new IllegalArgumentException("Child agent cannot also be its own parent");
     }
 }
