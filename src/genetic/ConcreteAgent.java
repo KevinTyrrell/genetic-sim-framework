@@ -18,11 +18,8 @@
 
 package genetic;
 
-import unused.Conversions;
-import unused.Mutations;
 import blackjack.Player;
 
-import java.util.BitSet;
 import java.util.Objects;
 
 import static blackjack.Blackjack.rand;
@@ -114,15 +111,15 @@ public class ConcreteAgent extends Player
         for (int i = 0; i < POSSIBLE_SCORES; i++)
             for (int j = 0; j < ACE_POSSIBILITY; j++)
             {
-                final int fatherWeight = weights[i][j];
-                final int motherWeight = mother.weights[i][j];
-                /* Crossover the father and mother's weights into a new weight. */
-                final BitSet childCross = Crossover.uniform(
-                        Conversions.convert(fatherWeight), Conversions.convert(motherWeight), rand);
-                Mutations.flip(childCross, 0.25f);
-                final long childWeight = Conversions.convert(childCross);
-                assert childWeight <= Integer.MAX_VALUE; // Should not be possible.
-                child.weights[i][j] = (int)childWeight;
+//                final int fatherWeight = weights[i][j];
+//                final int motherWeight = mother.weights[i][j];
+//                /* Crossover the father and mother's weights into a new weight. */
+//                final BitSet childCross = Crossover.uniform(
+//                        Conversions.convert(fatherWeight), Conversions.convert(motherWeight), rand);
+//                Mutations.flip(childCross, 0.25f);
+//                final long childWeight = Conversions.convert(childCross);
+//                assert childWeight <= Integer.MAX_VALUE; // Should not be possible.
+//                child.weights[i][j] = (int)childWeight;
             }
 
         return child;

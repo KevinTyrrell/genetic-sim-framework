@@ -18,193 +18,230 @@
 
 package genetic;
 
-import java.util.BitSet;
 import java.util.Objects;
 import java.util.Random;
 
 public interface Crossover
 {
-    /**
-     * Performs a single-point crossover.
-     * Bits from the father are transferred to the birthed child up
-     * until the index, from which the mother's bits are transferred.
-     *
-     * @param father Father's bits to crossover.
-     * @param mother Mother's bits to crossover.
-     * @param index Bit index, starting from the right-most bit, where father/mother crossover changes.
-     * @return newly birthed child.
-     */
-    static BitSet singlePoint(final BitSet father, final BitSet mother, final int index)
-    {
-        checkBitSets(father, mother);
-        if (index < 0) throw new IndexOutOfBoundsException(index);
-        final BitSet child = new BitSet();
-        copyBits(father, father.length(), child, 0, index - 1);
-        for (int bit = index;; bit++)
-        {
-            bit = mother.nextSetBit(bit);
-            if (bit < 0) return child;
-            child.set(bit);
-        }
-    }
+//    /**
+//     * Performs a single-point crossover.
+//     * Bits from the father are transferred to the birthed child up
+//     * until the index, from which the mother's bits are transferred.
+//     *
+//     * @param father Father's bits to crossover.
+//     * @param mother Mother's bits to crossover.
+//     * @param index Bit index, starting from the right-most bit, where father/mother crossover changes.
+//     * @return newly birthed child.
+//     */
+//    static BitSet singlePoint(final BitSet father, final BitSet mother, final int index)
+//    {
+//        checkBitSets(father, mother);
+//        if (index < 0) throw new IndexOutOfBoundsException(index);
+//        final BitSet child = new BitSet();
+//        copyBits(father, father.length(), child, 0, index - 1);
+//        for (int bit = index;; bit++)
+//        {
+//            bit = mother.nextSetBit(bit);
+//            if (bit < 0) return child;
+//            child.set(bit);
+//        }
+//    }
+//
+//    /**
+//     * Performs a two-point crossover.
+//     * Bits from the father and mother in partitions are inherited by the child.
+//     * |father bits|mother bits|father bits|
+//     *             ^ index i   ^ index j
+//     *
+//     * This is equivalent to calling BitSet.kPoint(father, mother, i, j).
+//     *
+//     * @param father Father's bits to crossover.
+//     * @param mother Mother's bits to crossover.
+//     * @param i Starting index of when to transfer the mother's bits.
+//     * @param j Starting index of when to continue transferring the father's bits.
+//     * @return newly birthed child.
+//     * @see Crossover#kPoint(BitSet, BitSet, int...)
+//     */
+//    static BitSet twoPoint(final BitSet father, final BitSet mother, final int i, final int j)
+//    {
+//        return kPoint(father, mother, i, j);
+//    }
+//
+//    /**
+//     * Performs a K-point crossover.
+//     * Bits will alternate being inherited from the father and the mother on each index.
+//     * For example, the call of Crossover.kPoint(father, mother, 1, 3, 3, 10) incur the following:
+//     * Father's bit 0 is inherited by the child.
+//     * Mother's bits 1 & 2 are inherited by the child.
+//     * Father's turn is skipped due to having a segment of length 0.
+//     * Mother's bits 3-9 are inherited by the child.
+//     * All child  bits not inherited from parents are set to 0.
+//     *
+//     * @param father Father's bits to crossover.
+//     * @param mother Mother's bits to crossover.
+//     * @param indexes Indexes of where to alternate the transferring of father's/mother's bits.
+//     * @return newly birthed child.
+//     * @see Crossover#singlePoint(BitSet, BitSet, int)
+//     * @see Crossover#twoPoint(BitSet, BitSet, int, int)
+//     */
+//    static BitSet kPoint(final BitSet father, final BitSet mother, final int... indexes)
+//    {
+//        checkBitSets(father, mother);
+//        final BitSet[] parents = { father, mother };
+//        final int[] lengths = { father.length(), mother.length() };
+//        final BitSet child = new BitSet();
+//        int bit = 0;
+//        for (int i = 0; i < indexes.length; i++)
+//        {
+//            final int index = indexes[i];
+//            if (bit > index) throw new IllegalArgumentException(String.format("Index %d is out of order", index));
+//            if (bit != index)
+//            {
+//                final int j = i & 1;
+//                copyBits(parents[j], lengths[j], child, bit, index - 1);
+//                bit = index;
+//            }
+//        }
+//
+//        return child;
+//    }
 
     /**
-     * Performs a two-point crossover.
-     * Bits from the father and mother in partitions are inherited by the child.
-     * |father bits|mother bits|father bits|
-     *             ^ index i   ^ index j
-     *
-     * This is equivalent to calling BitSet.kPoint(father, mother, i, j).
-     *
-     * @param father Father's bits to crossover.
-     * @param mother Mother's bits to crossover.
-     * @param i Starting index of when to transfer the mother's bits.
-     * @param j Starting index of when to continue transferring the father's bits.
-     * @return newly birthed child.
-     * @see Crossover#kPoint(BitSet, BitSet, int...)
+     * Performs a uniform crossover.
+     * Allows control over the likelihood of bits being inherited from father.
+     * A bias of 0.0 would yield 100% of bits to be inherited from the father.
+     * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
+     * A bias of 0.5 would yield an even likelihood of inheritance from either parent.
+     * 
+     * @param father Father bits to crossover.
+     * @param mother Mother bits to crossover.
+     * @param inheritRatio Likelihood of bits being inherited from the father, from [0.0, 1.0] (not likely to likely).
+     * @param generator Random number generator to use.
+     * @return crossed-over child gene.
      */
-    static BitSet twoPoint(final BitSet father, final BitSet mother, final int i, final int j)
+    static int uniform(final int father, final int mother, final float inheritRatio, final Random generator)
     {
-        return kPoint(father, mother, i, j);
-    }
-
-    /**
-     * Performs a K-point crossover.
-     * Bits will alternate being inherited from the father and the mother on each index.
-     * For example, the call of Crossover.kPoint(father, mother, 1, 3, 3, 10) incur the following:
-     * Father's bit 0 is inherited by the child.
-     * Mother's bits 1 & 2 are inherited by the child.
-     * Father's turn is skipped due to having a segment of length 0.
-     * Mother's bits 3-9 are inherited by the child.
-     * All child  bits not inherited from parents are set to 0.
-     *
-     * @param father Father's bits to crossover.
-     * @param mother Mother's bits to crossover.
-     * @param indexes Indexes of where to alternate the transferring of father's/mother's bits.
-     * @return newly birthed child.
-     * @see Crossover#singlePoint(BitSet, BitSet, int)
-     * @see Crossover#twoPoint(BitSet, BitSet, int, int)
-     */
-    static BitSet kPoint(final BitSet father, final BitSet mother, final int... indexes)
-    {
-        checkBitSets(father, mother);
-        final BitSet[] parents = { father, mother };
-        final int[] lengths = { father.length(), mother.length() };
-        final BitSet child = new BitSet();
-        int bit = 0;
-        for (int i = 0; i < indexes.length; i++)
+        if (inheritRatio < 0 || inheritRatio > 1)
+            throw new IllegalArgumentException(String.format(
+                    "Inheritance ratio of %f is not in bounds [0.0, 1.0]", inheritRatio));
+        /* Crossover father and mother into the child. */
+        int a = father, b = mother, c = 0;
+        Objects.requireNonNull(generator);
+        while (a != 0 && b != 0)
         {
-            final int index = indexes[i];
-            if (bit > index) throw new IllegalArgumentException(String.format("Index %d is out of order", index));
-            if (bit != index)
+            int father_bit = a & 1;
+            int mother_bit = b & 1;
+            if (generator.nextFloat() < inheritRatio)
             {
-                final int j = i & 1;
-                copyBits(parents[j], lengths[j], child, bit, index - 1);
-                bit = index;
+                
+            }
+            else
+            {
+                
             }
         }
-
-        return child;
+        
+        return c;
     }
 
-    /**
-     * Performs a uniform crossover.
-     * Allows control over the likelihood of bits being inherited from father.
-     * A bias of 0.0 would yield 100% of bits to be inherited from the father.
-     * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
-     * For an even likelihood (0.5), Crossover.uniform(BitSet, BitSet) should be used.
-     *
-     * @param father Father bits to crossover.
-     * @param mother Mother bits to crossover.
-     * @param inheritRatio likelihood of bits being inherited from father:mother.
-     * @return newly birthed child.
-     */
-    static BitSet uniform(final BitSet father, final BitSet mother, float inheritRatio)
-    {
-        return uniform(father, mother, inheritRatio, null);
-    }
-
-    /**
-     * Performs a uniform crossover.
-     * For each bit of the child, there will be an equally-likely chance
-     * that he will inherit a bit from the mother instead of the father.
-     *
-     * This is equivalent to calling Crossover.uniform(father, mother, 0.5f).
-     *
-     * @param father Father bits to crossover.
-     * @param mother Mother bits to crossover.
-     * @return newly birthed child.
-     */
-    static BitSet uniform(final BitSet father, final BitSet mother)
-    {
-        return uniform(father, mother, 0.5f, null);
-    }
-
-    /**
-     * Performs a uniform crossover.
-     * For each bit of the child, there will be an equally-likely chance
-     * that he will inherit a bit from the mother instead of the father.
-     *
-     * This is equivalent to calling Crossover.uniform(father, mother, 0.5f, null).
-     *
-     * @param father Father bits to crossover.
-     * @param mother Mother bits to crossover.
-     * @param rand  Random number generator to use.
-     * @return newly birthed child.
-     */
-    static BitSet uniform(final BitSet father, final BitSet mother, final Random rand)
-    {
-        return uniform(father, mother, 0.5f, rand);
-    }
-
-    /**
-     * Performs a uniform crossover.
-     * Allows control over the likelihood of bits being inherited from father.
-     * A bias of 0.0 would yield 100% of bits to be inherited from the father.
-     * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
-     * For an even likelihood (0.5), Crossover.uniform(BitSet, BitSet) should be used.
-     *
-     * @param father Father bits to crossover.
-     * @param mother Mother bits to crossover.
-     * @param inheritRatio likelihood of bits being inherited from father:mother.
-     * @param rand  Random number generator to use.
-     * @return newly birthed child.
-     */
-    static BitSet uniform(final BitSet father, final BitSet mother, final float inheritRatio, final Random rand)
-    {
-        checkBitSets(father, mother);
-        if (inheritRatio < 0 || inheritRatio > 1)
-            throw new IllegalArgumentException("Paternal bias must be within bounds [0.0, 1.0]");
-        final int len = Math.max(father.length(), mother.length());
-        final BitSet child = new BitSet();
-
-        if (rand == null)
-            for (int i = 0; i < len; i++)
-                child.set(i, Math.random() < inheritRatio ? father.get(i) : mother.get(i));
-        else for (int i = 0; i < len; i++)
-            child.set(i, rand.nextFloat() < inheritRatio ? father.get(i) : mother.get(i));
-
-        return child;
-    }
-
-    private static void copyBits(final BitSet host, final int hostLen, final BitSet target, final int from, final int to)
-    {
-        assert(host != null);
-        assert(target != null);
-        assert(hostLen >= 0);
-        assert(host != target);
-        assert(from >= 0);
-        assert(to >= 0);
-        assert(from <= to);
-
-        for (int bit = from; bit < hostLen && bit <= to; bit++)
-            if (host.get(bit))
-                target.set(bit);
-    }
-
-    private static void checkBitSets(final BitSet a, final BitSet b)
-    {
-        if (Objects.requireNonNull(a) == Objects.requireNonNull(b))
-            throw new IllegalArgumentException("Paternal and maternal BitSets must be unique");
-    }
+//    /**
+//     * Performs a uniform crossover.
+//     * Allows control over the likelihood of bits being inherited from father.
+//     * A bias of 0.0 would yield 100% of bits to be inherited from the father.
+//     * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
+//     * For an even likelihood (0.5), Crossover.uniform(BitSet, BitSet) should be used.
+//     *
+//     * @param father Father bits to crossover.
+//     * @param mother Mother bits to crossover.
+//     * @param inheritRatio likelihood of bits being inherited from father:mother.
+//     * @return newly birthed child.
+//     */
+//    static BitSet uniform(final BitSet father, final BitSet mother, final float inheritRatio)
+//    {
+//        return uniform(father, mother, inheritRatio, null);
+//    }
+//
+//    /**
+//     * Performs a uniform crossover.
+//     * For each bit of the child, there will be an equally-likely chance
+//     * that he will inherit a bit from the mother instead of the father.
+//     *
+//     * This is equivalent to calling Crossover.uniform(father, mother, 0.5f).
+//     *
+//     * @param father Father bits to crossover.
+//     * @param mother Mother bits to crossover.
+//     * @return newly birthed child.
+//     */
+//    static BitSet uniform(final BitSet father, final BitSet mother)
+//    {
+//        return uniform(father, mother, 0.5f, null);
+//    }
+//
+//    /**
+//     * Performs a uniform crossover.
+//     * For each bit of the child, there will be an equally-likely chance
+//     * that he will inherit a bit from the mother instead of the father.
+//     *
+//     * This is equivalent to calling Crossover.uniform(father, mother, 0.5f, null).
+//     *
+//     * @param father Father bits to crossover.
+//     * @param mother Mother bits to crossover.
+//     * @param rand  Random number generator to use.
+//     * @return newly birthed child.
+//     */
+//    static BitSet uniform(final BitSet father, final BitSet mother, final Random rand)
+//    {
+//        return uniform(father, mother, 0.5f, rand);
+//    }
+//
+//    /**
+//     * Performs a uniform crossover.
+//     * Allows control over the likelihood of bits being inherited from father.
+//     * A bias of 0.0 would yield 100% of bits to be inherited from the father.
+//     * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
+//     * For an even likelihood (0.5), Crossover.uniform(BitSet, BitSet) should be used.
+//     *
+//     * @param father Father bits to crossover.
+//     * @param mother Mother bits to crossover.
+//     * @param inheritRatio likelihood of bits being inherited from father:mother.
+//     * @param rand  Random number generator to use.
+//     * @return newly birthed child.
+//     */
+//    static BitSet uniform(final BitSet father, final BitSet mother, final float inheritRatio, final Random rand)
+//    {
+//        checkBitSets(father, mother);
+//        if (inheritRatio < 0 || inheritRatio > 1)
+//            throw new IllegalArgumentException("Paternal bias must be within bounds [0.0, 1.0]");
+//        final int len = Math.max(father.length(), mother.length());
+//        final BitSet child = new BitSet();
+//
+//        if (rand == null)
+//            for (int i = 0; i < len; i++)
+//                child.set(i, Math.random() < inheritRatio ? father.get(i) : mother.get(i));
+//        else for (int i = 0; i < len; i++)
+//            child.set(i, rand.nextFloat() < inheritRatio ? father.get(i) : mother.get(i));
+//
+//        return child;
+//    }
+//
+//    private static void copyBits(final BitSet host, final int hostLen, final BitSet target, final int from, final int to)
+//    {
+//        assert(host != null);
+//        assert(target != null);
+//        assert(hostLen >= 0);
+//        assert(host != target);
+//        assert(from >= 0);
+//        assert(to >= 0);
+//        assert(from <= to);
+//
+//        for (int bit = from; bit < hostLen && bit <= to; bit++)
+//            if (host.get(bit))
+//                target.set(bit);
+//    }
+//
+//    private static void checkBitSets(final BitSet a, final BitSet b)
+//    {
+//        if (Objects.requireNonNull(a) == Objects.requireNonNull(b))
+//            throw new IllegalArgumentException("Paternal and maternal BitSets must be unique");
+//    }
 }
