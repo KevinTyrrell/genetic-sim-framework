@@ -38,11 +38,11 @@ public class Simulation<T extends ConcreteAgent>
                       final ToIntFunction<T> costFunc)
     {
         if (population <= 0)
-            throw new IllegalArgumentException("Population must be positive and non-zero");
+            throw new IllegalArgumentException("Population parameter must be positive and non-zero");
         if ((population & 1) == 1)
-            throw new IllegalArgumentException("Population must be even");
+            throw new IllegalArgumentException("Population parameter must be even");
         if (generations < 0)
-            throw new IllegalArgumentException("Generations must be positive");
+            throw new IllegalArgumentException("Generation parameter must be positive");
         this.population = population;
         this.generations = generations;
         Objects.requireNonNull(init);

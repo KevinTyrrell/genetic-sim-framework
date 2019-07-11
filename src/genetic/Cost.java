@@ -22,23 +22,24 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 
-public class Cost<T extends ConcreteAgent> implements Consumer<T>
+public class Cost<T extends Agent<T>> implements Consumer<T>
 {
-    private final List<T> agents;
-    private final Map<T, Integer> costs;
-    private final ToIntFunction<T> costCallback;
-    private final Comparator<T> comparator;
-
+    private List<T> agents;
+    private Map<T, Integer> costs;
+    private ToIntFunction<T> costCallback;
+    private Comparator<T> comparator;
+    private IntSummaryStatistics iss = new IntSummaryStatistics();
+    
     /**
-     * Constructs a cost function with a specified capacity.
+     * Constructs a cost function with an initial capacity.
      *
      * @param capacity Number of agents to be processed.
-     * @param costCallback Callback which determines the cost for a given agent.
+     * @param costCallback Callback which determines the cost for a specified agent.
      */
     public Cost(final int capacity, final ToIntFunction<T> costCallback)
     {
-        if (capacity <= 0)
-            throw new IllegalArgumentException(String.format("Capacity must be positive", capacity));
+        if (capacity <= 0) 
+            throw new IllegalArgumentException("Cost function capacity must be positive");
         agents = new ArrayList<>(capacity);
         costs = new HashMap<>(capacity);
         this.costCallback = Objects.requireNonNull(costCallback);
@@ -48,63 +49,64 @@ public class Cost<T extends ConcreteAgent> implements Consumer<T>
     /**
      * Constructs a cost function.
      *
-     * @param costCallback Callback which determines the cost for a given agent.
+     * @param costCallback Callback which determines the cost for a specified agent.
      */
     public Cost(final ToIntFunction<T> costCallback)
     {
-        this.costCallback = Objects.requireNonNull(costCallback);
-        agents = new ArrayList<>();
-        costs = new HashMap<>();
-        comparator = Comparator.comparing(costs::get);
+        this(0, costCallback);
     }
 
     /**
      * Accepts an agent and performs the cost function on them.
      *
-     * @param t ConcreteAgent to be assessed.
+     * @param t Agent to be assessed and added.
      */
     @Override public void accept(final T t)
     {
-        if (costs.containsKey(t))
-            throw new IllegalStateException(String.format("ConcreteAgent \"%s\" was already evaluated", t.toString()));
+        if (costs == null) throw new IllegalStateException("Cost function has already ended");
+        if (costs.containsKey(Objects.requireNonNull(t)))
+            throw new IllegalStateException("Specified agent has already been evaluated");
         final int cost = costCallback.applyAsInt(t);
+        iss.accept(cost);
         agents.add(t);
         costs.put(t, cost);
     }
 
     /**
-     * @return Number of agents assessed.
+     * Ends the cost function, enabling garbage collection early.
+     * This function must be called before retrieving the results.
+     * 
+     * @param numAgents Number of agents to rank.
+     * @return This object for one-line convenience.
      */
-    public int size()
+    public List<T> doneAndRank(final int numAgents)
     {
-        return agents.size();
-    }
-
-    /**
-     * Retrieves the top scorers of those assessed by the cost function.
-     *
-     * @param numAgents Number of agents to retrieve.
-     * @return List of agents sorted by least cost to most.
-     */
-    public List<T> topScorers(final int numAgents)
-    {
-        final int size = costs.size();
-        if (numAgents > size)
+        if (agents == null)
+            throw new IllegalStateException("Cost function has already ended");
+        if (numAgents < 0 || numAgents > agents.size())
             throw new IllegalArgumentException(String.format(
-                    "Request of %d agents exceeds current size of %d", numAgents, size));
-        agents.sort(comparator);
-        return Collections.unmodifiableList(agents.subList(0, numAgents));
+                    "Index of %d is not within bounds [0, size]", agents.size()));
+        agents.subList(0, numAgents).sort(comparator);
+        final List<T> temp = agents;
+        /* Begin garbage collection as soon as possible. */
+        comparator = null; agents = null; costs = null; costCallback = null;
+        return temp;
     }
 
     /**
      * Retrieves the statistics of the generation's costs.
+     * This function may only be called after the cost function has ended.
      *
      * @return Summary statistics of how the generation performed.
      */
     public IntSummaryStatistics costAssessment()
     {
-        return costs.values().stream()
-                .mapToInt(i -> i)
-                .summaryStatistics();
+        if (agents != null)
+            throw new IllegalStateException("Cost function must be ended before requesting cost assessment");
+        if (iss == null)
+            throw new IllegalStateException("Cost assessment has already been returned");
+        final IntSummaryStatistics temp = iss;
+        iss = null;
+        return temp;
     }
 }

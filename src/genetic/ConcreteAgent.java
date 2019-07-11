@@ -22,35 +22,28 @@ import blackjack.Player;
 
 import java.util.Objects;
 
-import static blackjack.Blackjack.rand;
-
-public class ConcreteAgent extends Player
-{ /**
-     * Possible scores that a non-busted non-21'ed player can have.
-     * Minimum score is 2 with Ace, Ace and maximum score is 10, 10
-     * which is possible in a variety of combinations.
-     */
-    private static final int POSSIBLE_SCORES = 19;
-
-    /**
-     * Two possible circumstances: having an ace or not.
-     */
-    private static final int ACE_POSSIBILITY = 2;
+public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
+{
+    /* Dimension #1: Possible scores a player could have at any given time. */
+    private final int SCORE_POSSIBILITY = 19;
+    /* Dimension #2: Whether or not the player has an ace. */
+    private final int ACE_POSSIBILITY = 2;
+    
+    /* Two dimensional array represented by one dimension. */
+    private final int[] weights = new int[SCORE_POSSIBILITY * ACE_POSSIBILITY];
 
     /**
-     * @return Random weight between [0, Integer.MAX_VALUE].
+     * Retrieves the agent's weights.
+     * Weights represent the agent's current alignment.
+     * For agents with multiple weight dimensions, a single
+     * dimension array should be used for all dimensions.
+     *
+     * @return Array of weights.
      */
-    private static int randomWeight()
+    @Override public int[] getWeights()
     {
-        return rand.nextInt() & Integer.MAX_VALUE;
+        return weights;
     }
-
-    /**
-     * Two dimensional weight array.
-     * 1st dimension: what score the agent currently has ( [2, 20] ).
-     * 2md dimension: if the player has an ace or not.
-     */
-    private int[][] weights = new int[POSSIBLE_SCORES][ACE_POSSIBILITY];
 
     /**
      * Constructs an agent with completely random weights.
@@ -137,5 +130,13 @@ public class ConcreteAgent extends Player
                     score, weight, weightAce);
         }
         System.out.println();
+    }
+    
+    /**
+     * @return Random weight between [0, Integer.MAX_VALUE].
+     */
+    private static int randomWeight()
+    {
+        return rand.nextInt() & Integer.MAX_VALUE;
     }
 }
