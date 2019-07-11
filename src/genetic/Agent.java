@@ -119,7 +119,7 @@ public class Agent extends Player
                 /* Crossover the father and mother's weights into a new weight. */
                 final BitSet childCross = Crossover.uniform(
                         Conversions.convert(fatherWeight), Conversions.convert(motherWeight), rand);
-                Mutations.flip(childCross, 0.30f);
+                Mutations.flip(childCross, 0.25f);
                 final long childWeight = Conversions.convert(childCross);
                 assert childWeight <= Integer.MAX_VALUE; // Should not be possible.
                 child.weights[i][j] = (int)childWeight;

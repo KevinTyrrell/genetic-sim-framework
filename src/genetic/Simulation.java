@@ -19,6 +19,7 @@
 package genetic;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
@@ -50,16 +51,15 @@ public class Simulation<T extends Agent>
         this.costFunc = Objects.requireNonNull(costFunc);
     }
 
-    public void startSimulation()
+    public void startSimulation(final BiConsumer<IntSummaryStatistics, Integer> summaryCallback)
     {
+        Objects.requireNonNull(summaryCallback);
         for (int gen = 0; gen < generations; gen++)
         {
             final Cost<T> cost = new Cost<>(population, costFunc);
             for (int i = 0; i < population; i++)
                 cost.accept(agents.get(i));
-            final IntSummaryStatistics iss = cost.costAssessment();
-            System.out.printf("Generation #%d:\t\tAverage: %.2f,\t\tBest: %d,\t\tWorst: %d\n",
-                    gen, iss.getAverage(), iss.getMin(), iss.getMax());
+            summaryCallback.accept(cost.costAssessment(), gen);
 
             final int half = population / 2;
             final List<T> top = cost.topScorers(half);
