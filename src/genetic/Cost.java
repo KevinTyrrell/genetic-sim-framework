@@ -20,10 +20,9 @@ package genetic;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.ToIntFunction;
 
-public class Cost<T extends Agent> implements Consumer<T>
+public class Cost<T extends ConcreteAgent> implements Consumer<T>
 {
     private final List<T> agents;
     private final Map<T, Integer> costs;
@@ -62,12 +61,12 @@ public class Cost<T extends Agent> implements Consumer<T>
     /**
      * Accepts an agent and performs the cost function on them.
      *
-     * @param t Agent to be assessed.
+     * @param t ConcreteAgent to be assessed.
      */
     @Override public void accept(final T t)
     {
         if (costs.containsKey(t))
-            throw new IllegalStateException(String.format("Agent \"%s\" was already evaluated", t.toString()));
+            throw new IllegalStateException(String.format("ConcreteAgent \"%s\" was already evaluated", t.toString()));
         final int cost = costCallback.applyAsInt(t);
         agents.add(t);
         costs.put(t, cost);

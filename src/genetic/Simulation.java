@@ -19,13 +19,15 @@
 package genetic;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 import static blackjack.Blackjack.rand;
 
-public class Simulation<T extends Agent>
+public class Simulation<T extends ConcreteAgent>
 {
     private final List<T> agents;
     private final int population;
@@ -53,9 +55,14 @@ public class Simulation<T extends Agent>
 
     public void startSimulation(final BiConsumer<IntSummaryStatistics, Integer> summaryCallback)
     {
+        final int numThreads = Runtime.getRuntime().availableProcessors();
+        
         Objects.requireNonNull(summaryCallback);
         for (int gen = 0; gen < generations; gen++)
         {
+            final ExecutorService es = Executors.newFixedThreadPool(numThreads);
+            
+            
             final Cost<T> cost = new Cost<>(population, costFunc);
             for (int i = 0; i < population; i++)
                 cost.accept(agents.get(i));

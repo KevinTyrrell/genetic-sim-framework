@@ -18,8 +18,8 @@
 
 package genetic;
 
-import bitset.Conversions;
-import bitset.Mutations;
+import unused.Conversions;
+import unused.Mutations;
 import blackjack.Player;
 
 import java.util.BitSet;
@@ -27,7 +27,7 @@ import java.util.Objects;
 
 import static blackjack.Blackjack.rand;
 
-public class Agent extends Player
+public class ConcreteAgent extends Player
 { /**
      * Possible scores that a non-busted non-21'ed player can have.
      * Minimum score is 2 with Ace, Ace and maximum score is 10, 10
@@ -60,7 +60,7 @@ public class Agent extends Player
      *
      * @see Player#hit()
      */
-    public Agent()
+    public ConcreteAgent()
     {
         for (int i = 0; i < POSSIBLE_SCORES; i++)
             for (int j = 0; j < ACE_POSSIBILITY; j++)
@@ -105,11 +105,11 @@ public class Agent extends Player
      * @param mother Mother to reproduce with,
      * @return newly birthed child.
      */
-    public Agent reproduce(final Agent mother)
+    public ConcreteAgent reproduce(final ConcreteAgent mother)
     {
         if (Objects.requireNonNull(mother) == this)
             throw new IllegalArgumentException("Father and Mother must be unique");
-        final Agent child = new Agent();
+        final ConcreteAgent child = new ConcreteAgent();
         /* For every gene, recalculate new values. */
         for (int i = 0; i < POSSIBLE_SCORES; i++)
             for (int j = 0; j < ACE_POSSIBILITY; j++)
