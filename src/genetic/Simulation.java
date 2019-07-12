@@ -18,15 +18,14 @@
 
 package genetic;
 
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.IntSummaryStatistics;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.ToIntFunction;
 
 /**
@@ -46,6 +45,18 @@ public interface Simulation<T extends Agent<T>>
      * @return Newly created agent.
      */
     T initAgent();
+
+    /**
+     * Performs a specified mutation on an agent.
+     * This function will only be called after an
+     * agent has inherited genes from his parents.
+     * 
+     * This function should mutate the agent's genes
+     * to ensure a healthy balance of genetic diversity.
+     * 
+     * @param agent Agent to be mutated.
+     */
+    void mutateAgent(final Agent agent);
 
     /**
      * Creates a new cost function.
@@ -70,16 +81,20 @@ public interface Simulation<T extends Agent<T>>
     /**
      * Performs a simulation on a specified population.
      * For each generation, the following will be performed:
-     *  Each agent will be passed through the cost function and is assessed.
-     *  The 
+     *  Each agent will be passed through the cost function.
+     *  The top half best performing agents are chosen to live.
+     *  The remaining agents reproduce with each other and pass on genes.
+     *  The newly birthed children are added into the population.
+     *  This new population is closer to convergence than the last.
      * 
+     * TODO: Implement a 'gradient' that seldom allows good/bad agents to die/live.
      * 
-     * 
-     * @param population
-     * @param generations
+     * @param population Population of random agents to run the simulation with.
+     * @param generations Number of generations to continue the simulation.
      */
-    default void run(final T[] population, final int generations, final boolean multiThreaded)
+    default void run(final T[] population, final int generations, final Random generator, final boolean multiThreaded)
     {
+        Objects.requireNonNull(generator);
         if (generations < 0)
             throw new IllegalArgumentException("Generation parameter must be positive");
         if (Objects.requireNonNull(population).length % 4 != 0)
@@ -91,7 +106,7 @@ public interface Simulation<T extends Agent<T>>
         
         final int[] costs = new int[population.length];
         /* We only care about the top half performing agents -- not the entire population. */
-        final PriorityQueue<Integer> queue = new PriorityQueue<>(population.length, 
+        final PriorityQueue<Integer> sorted = new PriorityQueue<>(population.length, 
                 Comparator.comparingInt(o -> costs[o]));
         
         for (int gen = 0; gen < generations; gen++)
@@ -122,48 +137,32 @@ public interface Simulation<T extends Agent<T>>
             for (int i = 0; i < population.length; i++) iss.accept(costs[i]);
             genCostStatsCallback(iss, gen);
             
+            /* Heap sort half of the population. */
+            for (int i = 0; i < population.length; i++) sorted.add(i);
+            final int halfPop = population.length / 2;
+            final Object[] parents = new Object[halfPop];
+            for (int i = 0; i < halfPop; i++)
+                //noinspection ConstantConditions
+                parents[i] = population[sorted.poll()];
             
-            for (int i = 0; i < population.length; i++) queue.add(i);
-            
-            
-            
-            
-            
-            
-            queue.clear();
-        }
-    }
-
-    public void startSimulation(final BiConsumer<IntSummaryStatistics, Integer> summaryCallback)
-    {
-        final int numThreads = Runtime.getRuntime().availableProcessors();
-        
-        Objects.requireNonNull(summaryCallback);
-        for (int gen = 0; gen < generations; gen++)
-        {
-            final ExecutorService es = Executors.newFixedThreadPool(numThreads);
-            
-            
-            final Cost<T> cost = new Cost<>(population, costFunc);
-            for (int i = 0; i < population; i++)
-                cost.accept(agents.get(i));
-            summaryCallback.accept(cost.costAssessment(), gen);
-
-            final int half = population / 2;
-            final List<T> top = cost.topScorers(half);
-            for (int i = 0; i < half; i++) agents.set(i, top.get(i));
-            for (int fatherI = 0; fatherI < half - 1; fatherI++)
+            /* Repopulate the agent population. */
+            for (int i = 0; i < halfPop; i++)
             {
-                /* Pick a mother randomly to the right. */
-                final int motherI = 1 + fatherI + rand.nextInt(half - fatherI - 1);
-                final T mother = agents.get(motherI);
-                /* Swap the mother with whoever was neighboring us. */
-                agents.set(motherI, agents.get(fatherI + 1));
-                agents.set(fatherI + 1, mother);
-                agents.set(half + fatherI, (T)agents.get(fatherI).reproduce(mother));
+                @SuppressWarnings("unchecked")
+                final T father = (T)parents[i];
+                population[i] = father;
+                /* Randomly pick a mother among the remaining population. */
+                final int offset = 1 + generator.nextInt(halfPop - 1);
+                @SuppressWarnings("unchecked")
+                final T mother = (T)parents[(i + offset) % halfPop];
+                assert father != mother; // Should be impossible.
+                final T child = initAgent();
+                child.inherit(father, mother, generator);
+                mutateAgent(child);
+                population[i + halfPop] = child;
             }
-            // The last person has no one left to repopulate with. Pick one for him.
-            agents.set(population - 1, (T)agents.get(0).reproduce(agents.get(half - 1)));
+            
+            sorted.clear();
         }
     }
 }
