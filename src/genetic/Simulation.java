@@ -112,7 +112,7 @@ public interface Simulation<T extends Agent<T>>
         final PriorityQueue<Integer> sorted = new PriorityQueue<>(population.length, 
                 Comparator.comparingInt(o -> costs[o]));
         
-        for (int gen = 0; gen < generations; gen++)
+        for (int gen = 1; gen <= generations; gen++)
         {
             final ExecutorService es = Executors.newFixedThreadPool(numThreads);
             final List<Future<?>> results = new ArrayList<>(numThreads);
