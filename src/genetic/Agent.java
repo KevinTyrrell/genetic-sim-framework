@@ -42,6 +42,21 @@ public interface Agent<T>
     int[] getWeights();
 
     /**
+     * Randomizes an agent's weights.
+     * Each weight is randomized from [0, Integer.MAX_VALUE].
+     * 
+     * @param generator Random sequence generator to use.
+     */
+    default void randomizeWeights(final Random generator)
+    {
+        Objects.requireNonNull(generator);
+        final int[] weights = getWeights();
+        for (int i = 0; i < weights.length; i++)
+            /* Mask out any negative numbers of nextInt(). */
+            weights[i] = generator.nextInt() & Integer.MAX_VALUE;
+    }
+
+    /**
      * Inherits genes from two specified parents.
      * Genes are distributed through uniform crossover.
      * If a different crossover method is preferred, then

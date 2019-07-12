@@ -20,8 +20,14 @@ package genetic;
 
 import blackjack.Player;
 
-import java.util.Objects;
+import java.util.Random;
 
+/**
+ * Defines an implementation of a Blackjack player & agent.
+ * The concrete agent can play Blackjack as well as reproduce.
+ *
+ * @since 1.0
+ */
 public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
 {
     /* Dimension #1: Possible scores a player could have at any given time. */
@@ -31,6 +37,18 @@ public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
     
     /* Two dimensional array represented by one dimension. */
     private final int[] weights = new int[SCORE_POSSIBILITY * ACE_POSSIBILITY];
+    private final Random generator;
+
+    /**
+     * Constructs a new concrete agent.
+     * A seed for its personal random number generator must be provided.
+     * 
+     * @param seed
+     */
+    public ConcreteAgent(final long seed)
+    {
+        generator = new Random(seed);
+    }
 
     /**
      * Retrieves the agent's weights.
@@ -44,19 +62,7 @@ public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
     {
         return weights;
     }
-
-    /**
-     * Constructs an agent with completely random weights.
-     *
-     * @see Player#hit()
-     */
-    public ConcreteAgent()
-    {
-        for (int i = 0; i < POSSIBLE_SCORES; i++)
-            for (int j = 0; j < ACE_POSSIBILITY; j++)
-                weights[i][j] = randomWeight();
-    }
-
+    
     /**
      * Determines whether or not the player should hit.
      * A player may hit if their score is less than 21.
@@ -66,56 +72,14 @@ public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
      */
     @Override public boolean hit()
     {
-        return getWeight(getScore(), hasAce()) < randomWeight();
+        return getWeight(getScore(), hasAce()) > 
+                generator.nextInt(Integer.MAX_VALUE);
     }
-
-    /**
-     * Retrieves an agent's weight, given a specified situation.
-     * A weight is an integer of domain [0, Integer.MAX_VALUE].
-     * The larger the weight, the more 'affirmative' the agent is.
-     * As the weight approaches Integer.MAX_VALUE, the agent
-     * becomes more assure of his decision. A weight of
-     * INTEGER.MAX_VALUE / 2 would indicate a coin flip.
-     *
-     * @param score The agent's current score.
-     * @param hasAce Whether or not the agent has an ace.
-     * @return weight for that given circumstance.
-     */
-    public int getWeight(final int score, final boolean hasAce)
+    
+    /* Convenience function - translates 1D array into 2D. */
+    private int getWeight(final int score, final boolean hasAce)
     {
-        assert score >= 2;
-        assert score <= 20;
-        return weights[score - 2][hasAce ? 1 : 0];
-    }
-
-    /**
-     * Reproduces two agents into a new agent.
-     * The child agent retains influence from his mother and father's genes.
-     *
-     * @param mother Mother to reproduce with,
-     * @return newly birthed child.
-     */
-    public ConcreteAgent reproduce(final ConcreteAgent mother)
-    {
-        if (Objects.requireNonNull(mother) == this)
-            throw new IllegalArgumentException("Father and Mother must be unique");
-        final ConcreteAgent child = new ConcreteAgent();
-        /* For every gene, recalculate new values. */
-        for (int i = 0; i < POSSIBLE_SCORES; i++)
-            for (int j = 0; j < ACE_POSSIBILITY; j++)
-            {
-//                final int fatherWeight = weights[i][j];
-//                final int motherWeight = mother.weights[i][j];
-//                /* Crossover the father and mother's weights into a new weight. */
-//                final BitSet childCross = Crossover.uniform(
-//                        Conversions.convert(fatherWeight), Conversions.convert(motherWeight), rand);
-//                Mutations.flip(childCross, 0.25f);
-//                final long childWeight = Conversions.convert(childCross);
-//                assert childWeight <= Integer.MAX_VALUE; // Should not be possible.
-//                child.weights[i][j] = (int)childWeight;
-            }
-
-        return child;
+        return weights[score * (hasAce ? 1 : 2)];
     }
 
     public void printWeights()
@@ -130,13 +94,5 @@ public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
                     score, weight, weightAce);
         }
         System.out.println();
-    }
-    
-    /**
-     * @return Random weight between [0, Integer.MAX_VALUE].
-     */
-    private static int randomWeight()
-    {
-        return rand.nextInt() & Integer.MAX_VALUE;
     }
 }
