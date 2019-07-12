@@ -18,39 +18,98 @@
 
 package genetic;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.IntSummaryStatistics;
+import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
-import java.util.function.ToIntFunction;
+import java.util.function.IntFunction;
 
-import static blackjack.Blackjack.rand;
-
-public class Simulation<T extends ConcreteAgent>
+/**
+ * Defines a simulation in which agents, perform, are assessed,
+ * and reproduce with the goal of converging on a specific strategy.
+ *
+ * @param <T> Type of agent.
+ * @since 1.0
+ */
+public interface Simulation<T extends Agent<T>>
 {
-    private final List<T> agents;
-    private final int population;
-    private final int generations;
-    private final ToIntFunction<T> costFunc;
+    /**
+     * Creates an empty agent.
+     * The returned agent should not assign values for its weights,
+     * as callers of this method will overwrite the agent's weights.
+     * 
+     * @return Newly created agent.
+     */
+    T initAgent();
 
-    public Simulation(final int population, final int generations, final Supplier<T> init,
-                      final ToIntFunction<T> costFunc)
+    /**
+     * Creates a new cost function.
+     * Multiple cost functions are created if the simulation is multithreaded.
+     * The cost function(s) created should never used shared resources.
+     * 
+     * @return Cost function which assesses agents.
+     */
+    IntFunction<T> initCostFunc();
+
+    /**
+     * Callback function called each generation of the simulation.
+     * Summary statistics holds the average, min, and max cost of the generation.
+     * The generation number is also passed to the callback.
+     * By default, this method is empty but can be overridden.
+     *
+     * @param iss Statistics of the costs for the generation.
+     * @param generation Current generation number.
+     */
+    default void genCostStatsCallback(final IntSummaryStatistics iss, final int generation) { }
+
+    /**
+     * Performs a simulation on a specified population.
+     * For each generation, the following will be performed:
+     *  Each agent will be passed through the cost function and is assessed.
+     *  The 
+     * 
+     * 
+     * 
+     * @param population
+     * @param generations
+     */
+    default void run(final T[] population, final int generations, final boolean multiThreaded)
     {
-        if (population <= 0)
-            throw new IllegalArgumentException("Population parameter must be positive and non-zero");
-        if ((population & 1) == 1)
-            throw new IllegalArgumentException("Population parameter must be even");
+        Objects.requireNonNull(population);
         if (generations < 0)
             throw new IllegalArgumentException("Generation parameter must be positive");
-        this.population = population;
-        this.generations = generations;
-        Objects.requireNonNull(init);
-        /* Initialize the population randomly. */
-        agents = new ArrayList<>(population);
-        for (int i = 0; i < population; i++)
-            agents.add(init.get());
-        this.costFunc = Objects.requireNonNull(costFunc);
+        if (population.length % 4 != 0)
+            throw new IllegalArgumentException("Population parameter size must be a factor of four");
+        /* Separate cost function work across multiple threads. */
+        final int numThreads = multiThreaded ? 
+                Math.min(Runtime.getRuntime().availableProcessors(), population.length) : 1;
+        final int[] costs = new int[population.length];
+        /* We only care about the top half performing agents -- not the entire population. */
+        final PriorityQueue<Integer> queue = new PriorityQueue<>(population.length, 
+                Comparator.comparingInt(o -> costs[o]));
+        
+        for (int gen = 0; gen < generations; gen++)
+        {
+            final ExecutorService es = Executors.newFixedThreadPool(numThreads);
+            for (int i = 0; i < numThreads; i++)
+            {
+                final IntFunction<T> costFunc = initCostFunc();
+                es.submit(() ->
+                {
+                    
+                });
+            }
+            
+            /* Determine how well the population performed. */
+            final IntSummaryStatistics iss = new IntSummaryStatistics();
+            for (int i = 0; i < population.length; i++) iss.accept(costs[i]);
+            genCostStatsCallback(iss, gen);
+            queue.clear();
+        }
     }
 
     public void startSimulation(final BiConsumer<IntSummaryStatistics, Integer> summaryCallback)
