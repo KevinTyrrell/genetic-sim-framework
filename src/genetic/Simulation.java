@@ -18,14 +18,17 @@
 
 package genetic;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.IntSummaryStatistics;
+import java.util.List;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
 import java.util.function.ToIntFunction;
 
 /**
@@ -112,26 +115,31 @@ public interface Simulation<T extends Agent<T>>
         for (int gen = 0; gen < generations; gen++)
         {
             final ExecutorService es = Executors.newFixedThreadPool(numThreads);
+            final List<Future<?>> results = new ArrayList<>(numThreads);
             for (int i = 0; i < numThreads; i++)
             {
                 /* Each thread gets their own cost function so none step on each other's toes. */
                 final ToIntFunction<T> costFunc = initCostFunc();
                 final int j = i; // i must be final for inner class to use it.
-                es.submit(() ->
+                results.add(es.submit(() ->
                 {
                     final int startInc = j * agentsPerThread;
                     final int endExc = startInc + agentsPerThread
                             /* In case work load is not evenly divisible, last thread picks up the slack. */
                             + (j + 1 >= numThreads ? population.length - agentsPerThread * numThreads : 0);
                     for (int k = startInc; k < endExc; k++)
-                        costs[k] = costFunc.applyAsInt(population[k]);
-                });
+                        costs[k] = costFunc.applyAsInt(Objects.requireNonNull(population[k]));
+                }));
             }
+            
+            /* Ensure each thread completes normally. */
+            for (final Future<?> result : results)
+                try { result.get(); }
+                catch (final ExecutionException e)
+                { throw new RuntimeException(e); }
+                catch (final InterruptedException ignored) { }
             es.shutdown();
-            /* Have all of the threads assess the generation of agents. */ 
-            try { es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS); }
-            catch (final InterruptedException e) { e.printStackTrace(); }
-
+            
             /* Determine how well the population performed. */
             final IntSummaryStatistics iss = new IntSummaryStatistics();
             for (int i = 0; i < population.length; i++) iss.accept(costs[i]);

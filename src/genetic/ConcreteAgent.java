@@ -79,7 +79,8 @@ public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
     /* Convenience function - translates 1D array into 2D. */
     private int getWeight(final int score, final boolean hasAce)
     {
-        return weights[score * (hasAce ? 1 : 2)];
+        // Score of 2 is the lowest possible, thus index 0.
+        return weights[(score - 2) * (hasAce ? 1 : 2)];
     }
 
     public void printWeights()
