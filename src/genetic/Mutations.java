@@ -18,21 +18,60 @@
 
 package genetic;
 
-import java.util.BitSet;
 import java.util.Objects;
+import java.util.Random;
 
-import static blackjack.Blackjack.rand;
-
-public interface Mutations
+/**
+ * Defines various mutations which can be applied to agents.
+ * The type and severity of a mutation varies based on its implementation.
+ *
+ * @since 1.0
+ */
+public abstract class Mutations
 {
-    static void flip(final BitSet bits, final float rate)
+    /* Prevent class from being instantiated. */
+    private Mutations() { }
+    
+    private static final Random generator = new Random();
+
+    /**
+     * Randomly flips bits of an agent based on a specified mutation chance.
+     * Leading zero bits are not iterated over or flipped.
+     * 
+     * @param agent Agent to be mutated.
+     * @param mutationChance Chance of an individual bit being flipped, from [0.0, 1.0].
+     * @param generator Random number sequence to be used.
+     */
+    public static void flip(final Agent agent, final float mutationChance, final Random generator)
     {
-        Objects.requireNonNull(bits);
-        if (rate < 0 || rate > 1)
-            throw new IllegalArgumentException("Mutation rate must be between [0.0, 1.0]");
-        final int bitCount = Objects.requireNonNull(bits).length();
-        for (int i = 0; i < bitCount; i++)
-            if (rand.nextFloat() < rate)
-                bits.flip(i);
+        if (mutationChance < 0 || mutationChance > 1)
+            throw new IllegalArgumentException("Mutation chance parameter must be in bounds [0.0, 1.0]");
+        Objects.requireNonNull(generator);
+        final int[] weights = Objects.requireNonNull(agent).getWeights();
+        for (int i = 0; i < weights.length; i++)
+        {
+            int a = weights[i], b = a;
+            for (int k = 0; b != 0; k++)
+            {
+                if (generator.nextFloat() < mutationChance)
+                    a ^= (1 << k);
+                /* Continue until there are no more set bits. */
+                b >>= 1;
+            }
+            weights[i] = a;
+        }
+    }
+
+    /**
+     * Randomly flips bits of an agent based on a specified mutation chance.
+     * Leading zero bits are not iterated over or flipped.
+     * The local mutation Random sequence generator is used for random values.
+     *
+     * @param agent Agent to be mutated.
+     * @param mutationChance Chance of an individual bit being flipped, from [0.0, 1.0].
+     */
+    public static void flip(final Agent agent, final float mutationChance)
+    {
+        flip(agent, mutationChance, generator);
     }
 }
