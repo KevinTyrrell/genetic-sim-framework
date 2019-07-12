@@ -25,8 +25,9 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-import java.util.function.IntFunction;
+import java.util.function.ToIntFunction;
 
 /**
  * Defines a simulation in which agents, perform, are assessed,
@@ -53,7 +54,7 @@ public interface Simulation<T extends Agent<T>>
      * 
      * @return Cost function which assesses agents.
      */
-    IntFunction<T> initCostFunc();
+    ToIntFunction<T> initCostFunc();
 
     /**
      * Callback function called each generation of the simulation.
@@ -79,14 +80,15 @@ public interface Simulation<T extends Agent<T>>
      */
     default void run(final T[] population, final int generations, final boolean multiThreaded)
     {
-        Objects.requireNonNull(population);
         if (generations < 0)
             throw new IllegalArgumentException("Generation parameter must be positive");
-        if (population.length % 4 != 0)
+        if (Objects.requireNonNull(population).length % 4 != 0)
             throw new IllegalArgumentException("Population parameter size must be a factor of four");
         /* Separate cost function work across multiple threads. */
         final int numThreads = multiThreaded ? 
                 Math.min(Runtime.getRuntime().availableProcessors(), population.length) : 1;
+        final int agentsPerThread = population.length / numThreads;
+        
         final int[] costs = new int[population.length];
         /* We only care about the top half performing agents -- not the entire population. */
         final PriorityQueue<Integer> queue = new PriorityQueue<>(population.length, 
@@ -97,17 +99,37 @@ public interface Simulation<T extends Agent<T>>
             final ExecutorService es = Executors.newFixedThreadPool(numThreads);
             for (int i = 0; i < numThreads; i++)
             {
-                final IntFunction<T> costFunc = initCostFunc();
+                /* Each thread gets their own cost function so none step on each other's toes. */
+                final ToIntFunction<T> costFunc = initCostFunc();
+                final int j = i; // i must be final for inner class to use it.
                 es.submit(() ->
                 {
-                    
+                    final int startInc = j * agentsPerThread;
+                    final int endExc = startInc + agentsPerThread
+                            /* In case work load is not evenly divisible, last thread picks up the slack. */
+                            + (j + 1 >= numThreads ? population.length - agentsPerThread * numThreads : 0);
+                    for (int k = startInc; k < endExc; k++)
+                        costs[k] = costFunc.applyAsInt(population[k]);
                 });
             }
-            
+            es.shutdown();
+            /* Have all of the threads assess the generation of agents. */ 
+            try { es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS); }
+            catch (final InterruptedException e) { e.printStackTrace(); }
+
             /* Determine how well the population performed. */
             final IntSummaryStatistics iss = new IntSummaryStatistics();
             for (int i = 0; i < population.length; i++) iss.accept(costs[i]);
             genCostStatsCallback(iss, gen);
+            
+            
+            for (int i = 0; i < population.length; i++) queue.add(i);
+            
+            
+            
+            
+            
+            
             queue.clear();
         }
     }
@@ -143,13 +165,5 @@ public interface Simulation<T extends Agent<T>>
             // The last person has no one left to repopulate with. Pick one for him.
             agents.set(population - 1, (T)agents.get(0).reproduce(agents.get(half - 1)));
         }
-    }
-
-    /**
-     * @return List of agents who are currently alive.
-     */
-    public List<T> getAgents()
-    {
-        return Collections.unmodifiableList(agents);
     }
 }
