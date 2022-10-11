@@ -20,6 +20,7 @@ package genetic;
 
 import blackjack.Player;
 
+import java.io.Serializable;
 import java.util.Random;
 
 /**
@@ -28,7 +29,7 @@ import java.util.Random;
  *
  * @since 1.0
  */
-public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
+public class ConcreteAgent extends Player implements Agent<ConcreteAgent>, Serializable
 {
     /* Dimension #1: Possible scores a player could have at any given time. */
     private final int SCORE_POSSIBILITY = 19;
@@ -81,19 +82,5 @@ public class ConcreteAgent extends Player implements Agent<ConcreteAgent>
     {
         // Score of 2 is the lowest possible, thus index 0.
         return weights[(score - 2) * (hasAce ? 1 : 2)];
-    }
-
-    public void printWeights()
-    {
-        for (int score = 2; score <= 20; score++)
-        {
-            double weight = getWeight(score, false);
-            double weightAce = getWeight(score, true);
-            weight *= 100.0 / Integer.MAX_VALUE;
-            weightAce *= 100.0 / Integer.MAX_VALUE;
-            System.out.printf("Current Score: %d\t\t\tHit Chance: %.2f%%\t\t\tHit Chance (Ace): %.2f%%\n",
-                    score, weight, weightAce);
-        }
-        System.out.println();
     }
 }
