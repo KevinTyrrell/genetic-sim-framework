@@ -24,7 +24,6 @@ import java.util.Random;
 /**
  * Library of popular bitwise crossover methods.
  *
- * @since 1.0
  */
 public abstract class Crossover
 {

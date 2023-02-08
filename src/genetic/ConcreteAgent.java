@@ -27,7 +27,6 @@ import java.util.Random;
  * Defines an implementation of a Blackjack player & agent.
  * The concrete agent can play Blackjack as well as reproduce.
  *
- * @since 1.0
  */
 public class ConcreteAgent extends Player implements Agent<ConcreteAgent>, Serializable
 {

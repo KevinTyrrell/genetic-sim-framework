@@ -25,7 +25,6 @@ import java.util.Random;
  * Defines various mutations which can be applied to agents.
  * The type and severity of a mutation varies based on its implementation.
  *
- * @since 1.0
  */
 public abstract class Mutations
 {

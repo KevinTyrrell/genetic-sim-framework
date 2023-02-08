@@ -36,7 +36,6 @@ import java.util.function.ToIntFunction;
  * and reproduce with the goal of converging on a specific strategy.
  *
  * @param <T> Type of agent.
- * @since 1.0
  */
 public interface Simulation<T extends Agent<T>>
 {
