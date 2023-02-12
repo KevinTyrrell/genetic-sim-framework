@@ -72,7 +72,7 @@ public class ConcreteAgent extends Player implements Agent<ConcreteAgent>, Seria
      */
     @Override public boolean hit()
     {
-        return getWeight(getScore(), hasAce()) > 
+        return getWeight(getHardScore(), hasAce()) >
                 generator.nextInt(Integer.MAX_VALUE);
     }
     
