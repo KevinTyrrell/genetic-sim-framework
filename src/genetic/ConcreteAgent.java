@@ -18,7 +18,7 @@
 
 package genetic;
 
-import blackjack.Player;
+import blackjack.player.Player;
 
 import java.io.Serializable;
 import java.util.Random;
