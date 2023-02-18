@@ -23,6 +23,13 @@ import java.util.Random;
 import static java.util.Objects.requireNonNull;
 
 
+/**
+ * Defines an assortment of Crossover functions
+ *
+ * Crossover handles inheritance of genes from a mother and father to a child
+ *
+ * TODO: Add more Crossover constants
+ */
 public interface Crossover
 {
     /**

@@ -72,35 +72,16 @@ public interface Agent<T>
      * @param mother Mother to inherit genes from
      * @param father Father to inherit genes from
      * @param generator Random sequence generator
-     * @see Crossover#uniform(int, int, Random) 
+     * @param cross Crossover method for inheritance
      */
-    default void inherit(final Agent<T> father, final Agent<T> mother, final Random generator)
+    default void inherit(final Agent<T> father, final Agent<T> mother, final Random generator, final Crossover cross)
     {
         checkParentalLegitimacy(father, mother);
         requireNonNull(generator);
-        final int[] weights = getWeights(), fWeights = father.getWeights(), mWeights = mother.getWeights();
-        for (int i = 0; i < weights.length; i++) 
-            weights[i] = Crossover.uniform(fWeights[i], mWeights[i], generator);
-    }
-
-    /**
-     * Inherits genes from two specified parents
-     *
-     * Gene crossover is differed to the specified callback function.
-     * Negative values returned by callback will result in undefined behavior.
-     * 
-     * @param mother Mother to inherit genes from
-     * @param father Father to inherit genes from
-     * @param crossCallback Callback which performs a crossover of two genes
-     * @see Crossover
-     */
-    default void inherit(final Agent<T> father, final Agent<T> mother, final IntBinaryOperator crossCallback)
-    {
-        checkParentalLegitimacy(father, mother);
-        requireNonNull(crossCallback);
+        requireNonNull(cross);
         final int[] weights = getWeights(), fWeights = father.getWeights(), mWeights = mother.getWeights();
         for (int i = 0; i < weights.length; i++)
-            weights[i] = crossCallback.applyAsInt(fWeights[i], mWeights[i]);
+            weights[i] = cross.perform(fWeights[i], mWeights[i], generator);
     }
 
     /* Ensure reproduction parameters are valid */
