@@ -18,59 +18,68 @@
 
 package genetic;
 
-import java.util.Objects;
 import java.util.Random;
 
+import static java.util.Objects.requireNonNull;
+
+
 /**
- * Defines various mutations which can be applied to agents.
- * The type and severity of a mutation varies based on its implementation.
+ * Defines an assortment of Mutation functions
  *
+ * Mutations modify a particular gene, inducing new behavior
+ *
+ * TODO: Add more Mutation constants
  */
-public abstract class Mutation
+public interface Mutation
 {
-    /* Prevent class from being instantiated. */
-    private Mutation() { }
-    
-    private static final Random generator = new Random();
-
     /**
-     * Randomly flips bits of an agent based on a specified mutation chance.
-     * Leading zero bits are not iterated over or flipped.
-     * 
-     * @param agent Agent to be mutated.
-     * @param mutationChance Chance of an individual bit being flipped, from [0.0, 1.0].
-     * @param generator Random sequence generator
-     */
-    public static void flip(final Agent agent, final float mutationChance, final Random generator)
-    {
-        if (mutationChance < 0 || mutationChance > 1)
-            throw new IllegalArgumentException("Mutation chance parameter must be in bounds [0.0, 1.0]");
-        Objects.requireNonNull(generator);
-        final int[] weights = Objects.requireNonNull(agent).getWeights();
-        for (int i = 0; i < weights.length; i++)
-        {
-            int a = weights[i], b = a;
-            for (int k = 0; b != 0; k++)
-            {
-                if (generator.nextFloat() < mutationChance)
-                    a ^= (1 << k);
-                /* Continue until there are no more set bits. */
-                b >>= 1;
-            }
-            weights[i] = a;
-        }
-    }
-
-    /**
-     * Randomly flips bits of an agent based on a specified mutation chance.
-     * Leading zero bits are not iterated over or flipped.
-     * The local mutation Random sequence generator is used for random values.
+     * Uniform mutation
      *
-     * @param agent Agent to be mutated.
-     * @param mutationChance Chance of an individual bit being flipped, from [0.0, 1.0].
+     * Randomly flips bits of a gene based on a mutation chance.
+     * Leading zero bits are not iterated over or flipped.
      */
-    public static void flip(final Agent agent, final float mutationChance)
+    public static final Mutation UNIFORM = (gene, generator, mutationRate) ->
     {
-        flip(agent, mutationChance, generator);
+        if (gene < 0)
+            throw new IllegalArgumentException("Gene must be non-negative");
+        if (mutationRate < 0 || mutationRate > 1)
+            throw new IllegalArgumentException("Mutation rate must be within the domain: [0.0, 1.0].");
+        requireNonNull(generator);
+        int a = gene, b = gene;
+        for (int k = 0; b != 0; k++)
+        {
+            if (generator.nextFloat() < mutationRate)
+                a ^= (1 << k);
+            /* Continue until there are no more set bits */
+            b >>= 1;
+        }
+        return a;
+    };
+
+    /**
+     * Performs a gene mutation
+     *
+     * Mutation type depends on the implementation of this method
+     *
+     * @param gene Gene to be mutated
+     * @param generator Random sequence generator
+     * @param mutationRate Likelihood of bits being mutated, domain [0.0, 1.0]
+     * @return Mutated gene
+     */
+    int perform(final int gene, final Random generator, final float mutationRate);
+
+    /**
+     * Performs a gene mutation
+     *
+     * Mutation type depends on the implementation of this method.
+     * Mutates half of the bits of the gene, randomly.
+     *
+     * @param gene Gene to be mutated
+     * @param generator Random sequence generator
+     * @return Mutated gene
+     */
+    default int perform(final int gene, final Random generator)
+    {
+        return perform(gene, generator, 0.5f);
     }
 }
