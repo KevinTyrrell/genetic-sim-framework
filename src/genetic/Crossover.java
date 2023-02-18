@@ -70,7 +70,7 @@ public interface Crossover
      * @param father Father bits to crossover
      * @param mother Mother bits to crossover
      * @param generator Random sequence generator
-     * @param bias Likelihood of bits being inherited from the father/mother, domain [0.0, 1.0]
+     * @param bias Likelihood of bits being inherited from the father/mother, domain: [0.0, 1.0]
      * @return Child gene crossed over from parents
      */
     int perform(final int father, final int mother, final Random generator, final float bias);

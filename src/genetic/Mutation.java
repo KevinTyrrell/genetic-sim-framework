@@ -63,7 +63,7 @@ public interface Mutation
      *
      * @param gene Gene to be mutated
      * @param generator Random sequence generator
-     * @param mutationRate Likelihood of bits being mutated, domain [0.0, 1.0]
+     * @param mutationRate Likelihood of bits being mutated, domain: [0.0, 1.0]
      * @return Mutated gene
      */
     int perform(final int gene, final Random generator, final float mutationRate);

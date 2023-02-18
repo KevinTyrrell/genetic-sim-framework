@@ -165,7 +165,7 @@ public interface Simulation<T extends Agent<T>>
                 final T mother = (T)parents[(i + offset) % halfPop];
                 assert father != mother; // Should be impossible.
                 final T child = initAgent();
-                child.inherit(father, mother, generator);
+                child.inherit(father, mother, generator, Crossover.UNIFORM);
                 mutateAgent(child);
                 population[i + halfPop] = child;
             }
