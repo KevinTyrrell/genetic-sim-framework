@@ -33,18 +33,19 @@ import java.util.function.ToIntFunction;
 
 /**
  * Defines a simulation in which agents, perform, are assessed,
- * and reproduce with the goal of converging on a specific strategy.
+ * and reproduce with the goal of converging on a specific strategy
  *
- * @param <T> Type of agent.
+ * @param <T> Type of agent
  */
 public interface Simulation<T extends Agent<T>>
 {
     /**
-     * Creates an empty agent.
+     * Constructs a blank agent
+     *
      * The returned agent should not assign values for its weights,
      * as callers of this method will overwrite the agent's weights.
      * 
-     * @return Newly created agent.
+     * @return Newly created agent
      */
     T initAgent();
 

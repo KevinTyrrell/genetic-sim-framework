@@ -21,14 +21,14 @@ package genetic;
 import java.util.Random;
 import java.util.function.IntBinaryOperator;
 
-import static java.util.Objects.*;
+import static java.util.Objects.requireNonNull;
 
 
 /**
- * Defines an agent: a subject who reproduces and
- * has a series of weights geared towards learning
+ * Defines an agent
  *
- * TODO: Define abstract agent, who has an abstract weights
+ * An agent has weights which represent their disposition towards particular actions.
+ * Agents can also reproduce and inherit their dispositions from their parent agents.
  *
  * @param <T> Concrete agent type
  */
@@ -38,17 +38,20 @@ public interface Agent<T>
      * Retrieves the agent's weights
      *
      * Weights represent the agent's disposition towards an action.
-     * For agents with multiple weight dimensions, a single
-     * dimension array should be used for all dimensions.
-     * 
-     * @return Array of weights
+     * The index of the weight represents the combined inputs of an agent.
+     * The value at the index represents their disposition, given the inputs.
+     *
+     * For multiple inputs, the array should be treated as a multi-dimensional
+     *
+     * @return Weights of the agent
      */
     int[] getWeights();
 
     /**
      * Randomizes an agent's weights
      *
-     * Each weight is randomized from [0, Integer.MAX_VALUE]
+     * Each weight is randomized from [0, Integer.MAX_VALUE].
+     * This function randomizes the agent's disposition towards all actions.
      * 
      * @param generator Random sequence generator to use
      */
@@ -83,7 +86,8 @@ public interface Agent<T>
     /**
      * Inherits genes from two specified parents
      *
-     * Gene crossover is differed to the specified callback function
+     * Gene crossover is differed to the specified callback function.
+     * Negative values returned by callback will result in undefined behavior.
      * 
      * @param mother Mother to inherit genes from
      * @param father Father to inherit genes from
@@ -95,11 +99,11 @@ public interface Agent<T>
         checkParentalLegitimacy(father, mother);
         requireNonNull(crossCallback);
         final int[] weights = getWeights(), fWeights = father.getWeights(), mWeights = mother.getWeights();
-        for (int i = 0; i < weights.length; i++) 
+        for (int i = 0; i < weights.length; i++)
             weights[i] = crossCallback.applyAsInt(fWeights[i], mWeights[i]);
     }
 
-    /* Ensure reproduction parameters make sense. */
+    /* Ensure reproduction parameters are valid */
     private void checkParentalLegitimacy(final Object father, final Object mother)
     {
         if (requireNonNull(mother) == requireNonNull(father))
