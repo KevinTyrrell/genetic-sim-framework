@@ -22,30 +22,29 @@ import java.util.Objects;
 import java.util.Random;
 
 /**
- * Library of popular bitwise crossover methods.
+ * Assortment of gene crossover functions
  *
+ * TODO: Add alternative Crossover methods
  */
 public abstract class Crossover
 {
-    /* Prevent class from being instantiated. */
+    /* Prevent class from being instantiated */
     private Crossover() { }
-    
-    /* Used when user does not provide a generator of his own. */
-    private static final Random generator = new Random();
 
     /**
-     * Performs a uniform crossover.
-     * Allows control over the likelihood of bits being inherited from father.
+     * Performs a uniform crossover
+     *
+     * Allows control over the likelihood of bits being inherited from father vs. mother
+     *
      * A bias of 0.0 would yield 100% of bits to be inherited from the father.
      * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
      * A bias of 0.5 would yield an even likelihood of inheritance from either parent.
-     * TODO: Allow for negative integers.
      *
-     * @param father Father bits to crossover.
-     * @param mother Mother bits to crossover.
-     * @param inheritRatio Likelihood of bits being inherited from the father, from [0.0, 1.0] (not likely to likely).
-     * @param generator Random number generator to use.
-     * @return crossed-over child gene.
+     * @param father Father bits to crossover
+     * @param mother Mother bits to crossover
+     * @param inheritRatio Likelihood of bits being inherited from the father/mother, domain [0.0, 1.0]
+     * @param generator Random sequence generator
+     * @return crossed-over child gene
      */
     public static int uniform(final int father, final int mother, final float inheritRatio, final Random generator)
     {
@@ -69,51 +68,16 @@ public abstract class Crossover
     }
 
     /**
-     * Performs a uniform crossover.
-     * Allows control over the likelihood of bits being inherited from father.
-     * A bias of 0.0 would yield 100% of bits to be inherited from the father.
-     * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
-     * A bias of 0.5 would yield an even likelihood of inheritance from either parent.
-     * Random sequence will differ to the Crossover's Random instance.
+     * Performs a uniform crossover
      *
-     * @param father Father bits to crossover.
-     * @param mother Mother bits to crossover.
-     * @param inheritRatio Likelihood of bits being inherited from the father, from [0.0, 1.0] (not likely to likely).
-     * @return crossed-over child gene.
-     */
-    public static int uniform(final int father, final int mother, final float inheritRatio)
-    {
-        return uniform(father, mother, inheritRatio, generator);
-    }
-
-    /**
-     * Performs a uniform crossover.
-     * Allows control over the likelihood of bits being inherited from father.
-     * A bias of 0.0 would yield 100% of bits to be inherited from the father.
-     * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
-     * A bias of 0.5 would yield an even likelihood of inheritance from either parent.
+     * Ensures equal likelihood of bits being inherited from father vs. mother
      *
-     * @param father Father bits to crossover.
-     * @param mother Mother bits to crossover.
-     * @param generator Random number generator to use.
-     * @return crossed-over child gene.
+     * @param father Father bits to crossover
+     * @param mother Mother bits to crossover
+     * @param generator Random sequence generator
+     * @return crossed-over child gene
      */
     public static int uniform(final int father, final int mother, final Random generator)
-    {
-        return uniform(father, mother, 0.5f, generator);
-    }
-
-    /**
-     * Performs a uniform crossover.
-     * Yields an even likelihood of father or mother's bits being inherited.
-     * Random sequence will differ to the Crossover's Random instance.
-     * This is equivalent to Crossover.uniform(father, mother, 0.5f).
-     *
-     * @param father Father bits to crossover.
-     * @param mother Mother bits to crossover.
-     * @return crossed-over child gene.
-     */
-    static int uniform(final int father, final int mother)
     {
         return uniform(father, mother, 0.5f, generator);
     }

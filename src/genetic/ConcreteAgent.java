@@ -43,7 +43,7 @@ public class ConcreteAgent extends Player implements Agent<ConcreteAgent>, Seria
      * Constructs a new concrete agent.
      * A seed for its personal random number generator must be provided.
      * 
-     * @param seed
+     * @param seed Random seed sequence
      */
     public ConcreteAgent(final long seed)
     {
