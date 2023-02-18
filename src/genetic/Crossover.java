@@ -18,23 +18,43 @@
 
 package genetic;
 
-import java.util.Objects;
 import java.util.Random;
 
-/**
- * Assortment of gene crossover functions
- *
- * TODO: Add alternative Crossover methods
- */
-public abstract class Crossover
+import static java.util.Objects.requireNonNull;
+
+
+public interface Crossover
 {
-    /* Prevent class from being instantiated */
-    private Crossover() { }
+    /**
+     * Uniform crossover
+     *
+     * Evenly distributes bits from the father and mother, randomly.
+     * For each bit, either the father or the mother is selected.
+     * The selected parent's bit is then copied to the child gene.
+     */
+    public static final Crossover UNIFORM = (father, mother, generator, bias) ->
+    {
+        if (father < 0 || mother < 0)
+            throw new IllegalArgumentException("Parental genes must be non-negative.");
+        if (bias < 0 || bias > 1)
+            throw new IllegalArgumentException("Bias ratio must be within the domain: [0.0, 1.0].");
+        requireNonNull(generator);
+        /* Crossover father and mother into the child */
+        int a = father, b = mother, c = 0;
+        for (int i = 0; a != 0 || b != 0; i++)
+        {
+            c += ((generator.nextFloat() < bias ? a : b) & 1) << i;
+            a >>= 1;
+            b >>= 1;
+        }
+
+        return c;
+    };
 
     /**
-     * Performs a uniform crossover
+     * Performs a gene crossover between two parents
      *
-     * Allows control over the likelihood of bits being inherited from father vs. mother
+     * Crossover type depends upon the implementation of this method
      *
      * A bias of 0.0 would yield 100% of bits to be inherited from the father.
      * A bias of 1.0 would yield 100% of bits to be inherited from the mother.
@@ -42,43 +62,25 @@ public abstract class Crossover
      *
      * @param father Father bits to crossover
      * @param mother Mother bits to crossover
-     * @param inheritRatio Likelihood of bits being inherited from the father/mother, domain [0.0, 1.0]
      * @param generator Random sequence generator
-     * @return crossed-over child gene
+     * @param bias Likelihood of bits being inherited from the father/mother, domain [0.0, 1.0]
+     * @return Child gene crossed over from parents
      */
-    public static int uniform(final int father, final int mother, final float inheritRatio, final Random generator)
-    {
-        if (father < 0 || mother < 0)
-            throw new IllegalArgumentException("Father and mother must be positive");
-        if (inheritRatio < 0 || inheritRatio > 1)
-            throw new IllegalArgumentException(String.format(
-                    "Inheritance ratio of %f is not in bounds [0.0, 1.0]", inheritRatio));
-        /* Crossover father and mother into the child. */
-        int a = father, b = mother, c = 0;
-        Objects.requireNonNull(generator);
-        
-        for (int i = 0; a != 0 || b != 0; i++)
-        {
-            c += ((generator.nextFloat() < inheritRatio ? a : b) & 1) << i;
-            a >>= 1;
-            b >>= 1;
-        }
-
-        return c;
-    }
+    int perform(final int father, final int mother, final Random generator, final float bias);
 
     /**
-     * Performs a uniform crossover
+     * Performs a gene crossover between two parents
      *
-     * Ensures equal likelihood of bits being inherited from father vs. mother
+     * Crossover type depends upon the implementation of this method.
+     * Ensures equal likelihood of bits being inherited from father vs. mother.
      *
      * @param father Father bits to crossover
      * @param mother Mother bits to crossover
      * @param generator Random sequence generator
-     * @return crossed-over child gene
+     * @return Child gene crossed over from parents
      */
-    public static int uniform(final int father, final int mother, final Random generator)
+    default int perform(final int father, final int mother, final Random generator)
     {
-        return uniform(father, mother, 0.5f, generator);
+        return perform(father, mother, generator, 0.5f);
     }
 }

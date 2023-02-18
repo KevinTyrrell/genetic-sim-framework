@@ -48,12 +48,12 @@ public interface Agent<T>
     int[] getWeights();
 
     /**
-     * Randomizes an agent's weights
+     * Randomizes the agent's weights
      *
      * Each weight is randomized from [0, Integer.MAX_VALUE].
      * This function randomizes the agent's disposition towards all actions.
      * 
-     * @param generator Random sequence generator to use
+     * @param generator Random sequence generator
      */
     default void randomizeWeights(final Random generator)
     {
@@ -71,7 +71,7 @@ public interface Agent<T>
      * 
      * @param mother Mother to inherit genes from
      * @param father Father to inherit genes from
-     * @param generator Random number sequence to use
+     * @param generator Random sequence generator
      * @see Crossover#uniform(int, int, Random) 
      */
     default void inherit(final Agent<T> father, final Agent<T> mother, final Random generator)

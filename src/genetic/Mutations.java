@@ -39,7 +39,7 @@ public abstract class Mutations
      * 
      * @param agent Agent to be mutated.
      * @param mutationChance Chance of an individual bit being flipped, from [0.0, 1.0].
-     * @param generator Random number sequence to be used.
+     * @param generator Random sequence generator
      */
     public static void flip(final Agent agent, final float mutationChance, final Random generator)
     {
