@@ -26,10 +26,10 @@ import java.util.Random;
  * The type and severity of a mutation varies based on its implementation.
  *
  */
-public abstract class Mutations
+public abstract class Mutation
 {
     /* Prevent class from being instantiated. */
-    private Mutations() { }
+    private Mutation() { }
     
     private static final Random generator = new Random();
 
