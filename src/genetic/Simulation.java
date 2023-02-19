@@ -18,6 +18,8 @@
 
 package genetic;
 
+import genetic.agent.Agent;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.IntSummaryStatistics;
