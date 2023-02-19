@@ -23,63 +23,59 @@ import blackjack.player.Player;
 import java.io.Serializable;
 import java.util.Random;
 
+
 /**
- * Defines an implementation of a Blackjack player & agent.
- * The concrete agent can play Blackjack as well as reproduce.
- *
+ * Defines a fully-fledged Blackjack player.
  */
 public class ConcreteAgent extends Player implements Agent<ConcreteAgent>, Serializable
 {
-    /* Dimension #1: Possible scores a player could have at any given time. */
-    private final int SCORE_POSSIBILITY = 19;
-    /* Dimension #2: Whether or not the player has an ace. */
-    private final int ACE_POSSIBILITY = 2;
-    
-    /* Two dimensional array represented by one dimension. */
-    private final int[] weights = new int[SCORE_POSSIBILITY * ACE_POSSIBILITY];
     private final Random generator;
+    private final int[] weights = new int[2 * 19]; // Two dimensions represented as a single dimensional array
 
     /**
-     * Constructs a new concrete agent.
-     * A seed for its personal random number generator must be provided.
-     * 
-     * @param seed Random seed sequence
+     * @param generator Random sequence generator
      */
-    public ConcreteAgent(final long seed)
+    public ConcreteAgent(final Random generator)
     {
-        generator = new Random(seed);
+        this.generator = generator;
     }
 
     /**
-     * Retrieves the agent's weights.
-     * Weights represent the agent's current alignment.
-     * For agents with multiple weight dimensions, a single
-     * dimension array should be used for all dimensions.
+     * Determines whether or not the player should hit
      *
-     * @return Array of weights.
+     * A player may hit if their score is less than 21.
+     * A dealer must hit if his maximum score is less than 17.
+     *
+     * @return true if the player should hit
+     */
+    @Override public boolean hit()
+    {
+        final int x = hasAce() ? 1 : 2;
+        /* A score of 0 or 1 in Blackjack is impossible.
+        Therefore we remove two weights that would otherwise be wasted. */
+        final int y = getHardScore() - 2;
+        /*
+         * Dimension 1: Ace [0,1], a player having an ace in their hand can drastically change their disposition.
+         * Dimension 2: Score [0,18] Valid scores to hit/stand are between 2 and 20, for a total of 19 possible scores.
+         *
+         * Flatten the two dimensions into one dimension
+         */
+        return weights[(x * y)] > generator.nextInt(Integer.MAX_VALUE);
+    }
+
+    /**
+     * Retrieves the agent's weights
+     *
+     * Weights represent the agent's disposition towards an action.
+     * The index of the weight represents the combined inputs of an agent.
+     * The value at the index represents their disposition, given the inputs.
+     *
+     * For multiple inputs, the array should be treated as a multi-dimensional
+     *
+     * @return Weights of the agent
      */
     @Override public int[] getWeights()
     {
         return weights;
-    }
-    
-    /**
-     * Determines whether or not the player should hit.
-     * A player may hit if their score is less than 21.
-     * A dealer must hit if his maximum score is less than 17.
-     *
-     * @return true if the player should hit.
-     */
-    @Override public boolean hit()
-    {
-        return getWeight(getHardScore(), hasAce()) >
-                generator.nextInt(Integer.MAX_VALUE);
-    }
-    
-    /* Convenience function - translates 1D array into 2D. */
-    private int getWeight(final int score, final boolean hasAce)
-    {
-        // Score of 2 is the lowest possible, thus index 0.
-        return weights[(score - 2) * (hasAce ? 1 : 2)];
     }
 }
