@@ -1,6 +1,6 @@
 /*
- *     Genetic algorithm which teaches agents how to play Blackjack.
- *     Copyright (C) 2019-2023  Kevin Tyrrell
+ *     <one line to give the program's name and a brief idea of what it does.>
+ *     Copyright (C) 2023  Kevin Tyrrell
  *
  *     This program is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package genetic;
+package genetic.gene;
 
 import java.util.Random;
 

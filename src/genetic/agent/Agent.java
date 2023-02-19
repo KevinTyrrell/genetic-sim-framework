@@ -18,7 +18,7 @@
 
 package genetic.agent;
 
-import genetic.Crossover;
+import genetic.gene.Crossover;
 
 import java.util.Random;
 

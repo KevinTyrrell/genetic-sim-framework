@@ -19,6 +19,7 @@
 package genetic;
 
 import genetic.agent.Agent;
+import genetic.gene.Crossover;
 
 import java.util.ArrayList;
 import java.util.Comparator;
