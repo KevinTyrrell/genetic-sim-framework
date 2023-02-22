@@ -21,13 +21,7 @@ package genetic;
 import genetic.agent.Agent;
 import genetic.gene.Crossover;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.IntSummaryStatistics;
-import java.util.List;
-import java.util.Objects;
-import java.util.PriorityQueue;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -150,6 +144,12 @@ public interface Simulation<T extends Agent<T>>
             
             /* Heap sort half of the population. */
             for (int i = 0; i < population.length; i++) sorted.add(i);
+            assert sorted.peek() != null;
+            for (int weight : population[sorted.peek()].getWeights())
+            {
+                System.out.printf("%.0f%%     ", ((double)weight / Integer.MAX_VALUE) * 100);
+            }
+            System.out.println();
             final int halfPop = population.length / 2;
             final Object[] parents = new Object[halfPop];
             for (int i = 0; i < halfPop; i++)
