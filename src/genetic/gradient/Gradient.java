@@ -16,9 +16,23 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package genetic;
+package genetic.gradient;
 
-public interface Gradient<T>
+import genetic.Population;
+import genetic.agent.Agent;
+
+
+public interface Gradient<T extends Agent<T>>
 {
-    
+    /**
+     * Applies the gradient to the population
+     *
+     * Half of the population will be destroyed in order
+     * to make room for the next generation of agents.
+     * The route in which agents are selected to be
+     * destroyed is up to the discretion of the gradient.
+     *
+     * @param pop Population to apply the gradient to
+     */
+    void apply(final Population<T> pop);
 }

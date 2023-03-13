@@ -39,7 +39,13 @@ public interface Population<T>
      * @param costFunc Callback cost function to be applied to each agent
      * @see Population#getFitnessCosts()
      */
-    void performFitnessTest(final ToDoubleFunction<Agent<T>> costFunc);
+    default void performFitnessTest(final ToDoubleFunction<Agent<T>> costFunc)
+    {
+        final double[] fitnessCosts = getFitnessCosts();
+        final List<Agent<T>> agents = getPopulation();
+        for (int i = 0; i < fitnessCosts.length; i++)
+            fitnessCosts[i] = costFunc.applyAsDouble(agents.get(i));
+    }
 
     /**
      * Retrieves fitness values for each agent
@@ -60,7 +66,8 @@ public interface Population<T>
     /**
      * Initializes the population with randomized agents
      *
-     * This function should only be called once per population
+     * This function should only be called once per population.
+     * The implementing function should ensure the fitness array is initialized as well.
      *
      * TODO: Determine if Population should be a class with this as the constructor
      *
@@ -98,7 +105,17 @@ public interface Population<T>
         return stats;
     }
 
-    // TODO: Enable a way to print out avg of each weight, using ISS
+    default void advanceGeneration()
+    {
+        /*
+        TODO:
+        Step 1) Perform a fitness test
+        Step 2) Cull the population
+        Step 3) Apply a gradient to the culling process
+        e.g. FLAT completely severs the population in half
+         */
+    }
+
     void sortPopulation(); // TODO: Unsure if this is the route to go
     void cullPopulation(); // TODO: Parameter could be a 'CullingMethod'
 }
