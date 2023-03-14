@@ -18,9 +18,12 @@
 
 package genetic.gene;
 
+import util.Utilities;
+
 import java.util.Random;
 
 import static java.util.Objects.requireNonNull;
+import static util.Utilities.validateDomain;
 
 
 /**
@@ -43,8 +46,7 @@ public interface Crossover
     {
         if (father < 0 || mother < 0)
             throw new IllegalArgumentException("Parental genes must be non-negative.");
-        if (bias < 0 || bias > 1)
-            throw new IllegalArgumentException("Bias ratio must be within the domain: [0.0, 1.0].");
+        validateDomain(bias, 0.0f, 1.0f);
         requireNonNull(generator);
         /* Crossover father and mother into the child */
         int a = father, b = mother, c = 0;
