@@ -69,7 +69,7 @@ public final class BirdshotGradient<T extends Agent<T>> implements Gradient<T>
      */
     @Override public void apply(final Population<T> pop)
     {
-        final List<Agent<T>> agents = pop.getPopulation();
+        final List<T> agents = pop.getPopulation();
         final double[] costs = pop.getFitnessCosts();
         final int numAgents = agents.size();
         final double min = min(costs), max = max(costs);
@@ -80,7 +80,7 @@ public final class BirdshotGradient<T extends Agent<T>> implements Gradient<T>
 
         /* Elite & Non Elite: Top & bottom performing half of the population.
         Unlucky & Lucky: Agents who are randomly selected to die & live despite performance. */
-        final LinkedList<Agent<T>> elite = new LinkedList<>(), nonElite = new LinkedList<>(),
+        final LinkedList<T> elite = new LinkedList<>(), nonElite = new LinkedList<>(),
                 unlucky = new LinkedList<>(), lucky = new LinkedList<>();
         decideFates(agents, costs, elite, unlucky, 0, numAgents / 2 - 1);
         decideFates(agents, costs, nonElite, lucky, numAgents / 2, numAgents - 1);
@@ -96,12 +96,12 @@ public final class BirdshotGradient<T extends Agent<T>> implements Gradient<T>
     }
 
     // Randomly determines if the fate of each agent should change
-    private void decideFates(final List<Agent<T>> l, final double[] c,
-                             final List<Agent<T>> a, final List<Agent<T>> b, final int s, final int e)
+    private void decideFates(final List<T> l, final double[] c,
+                             final List<T> a, final List<T> b, final int s, final int e)
     {
         for (int i = s; i <= e; i++)
         {
-            final Agent<T> agent = l.get(i);
+            final T agent = l.get(i);
             // If the normalized cost is less than our random value, the agent's fate is changed
             if (c[i] < generator.nextDouble()) b.add(agent); else a.add(agent);
         }

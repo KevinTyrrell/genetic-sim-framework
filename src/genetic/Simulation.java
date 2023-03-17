@@ -87,8 +87,6 @@ public interface Simulation<T extends Agent<T>>
      *  The newly birthed children are added into the population.
      *  This new population is closer to convergence than the last.
      * 
-     * TODO: Implement a 'gradient' that seldom allows good/bad agents to die/live.
-     * 
      * @param population Population of random agents to run the simulation with.
      * @param generations Number of generations to continue the simulation.
      */
@@ -146,9 +144,7 @@ public interface Simulation<T extends Agent<T>>
             for (int i = 0; i < population.length; i++) sorted.add(i);
             assert sorted.peek() != null;
             for (int weight : population[sorted.peek()].getWeights())
-            {
                 System.out.printf("%.0f%%     ", ((double)weight / Integer.MAX_VALUE) * 100);
-            }
             System.out.println();
             final int halfPop = population.length / 2;
             final Object[] parents = new Object[halfPop];

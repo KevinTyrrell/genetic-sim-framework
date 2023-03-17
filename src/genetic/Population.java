@@ -20,13 +20,30 @@ package genetic;
 
 import genetic.agent.Agent;
 
-import java.util.IntSummaryStatistics;
-import java.util.List;
+import java.util.*;
+import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.IntStream;
+
+import static java.util.Objects.requireNonNull;
 
 
-public interface Population<T>
+public abstract class Population<T extends Agent<T>>
 {
+    private final List<T> agents;
+    private final double[] costs;
+
+    public Population(final int numAgents, final Supplier<T> init)
+    {
+        if (numAgents < 0 || numAgents % 4 != 0)
+            throw new IllegalArgumentException("Population size must be positive and a multiple of four");
+        requireNonNull(init);
+        costs = new double[numAgents];
+        agents = new ArrayList<>(numAgents);
+        for (int i = 0; i < numAgents; i++)
+            agents.set(i, requireNonNull(init.get()));
+    }
+
     /**
      * Performs a fitness test, assessing the performance of all agents
      *
@@ -39,41 +56,39 @@ public interface Population<T>
      * @param costFunc Callback cost function to be applied to each agent
      * @see Population#getFitnessCosts()
      */
-    default void performFitnessTest(final ToDoubleFunction<Agent<T>> costFunc)
+    public void performFitnessTest(final ToDoubleFunction<Agent<T>> costFunc)
     {
-        final double[] fitnessCosts = getFitnessCosts();
-        final List<Agent<T>> agents = getPopulation();
-        for (int i = 0; i < fitnessCosts.length; i++)
-            fitnessCosts[i] = costFunc.applyAsDouble(agents.get(i));
+        requireNonNull(costFunc);
+        for (int i = 0; i < costs.length; i++)
+        {
+            final double cost = costFunc.applyAsDouble(agents.get(i));
+            if (cost < 0) throw new IllegalArgumentException("Cost function output must be non-negative");
+            costs[i] = cost;
+        }
     }
 
     /**
-     * Retrieves fitness values for each agent
+     * Sorts the population by their fitness scores
      *
-     * Each agent's index in the population corresponds with their index of the fitness array.
-     * A fitness test must be performed once each generation in order for this function to be valid.
-     *
-     * @return Fitness values assigned to each agent
-     * @see Population#performFitnessTest(ToDoubleFunction)
+     * Fitness test should be performed before this method is called.
+     * This method should be called before a population cull/gradient.
      */
-    double[] getFitnessCosts();
+    public void sortPopulation()
+    {
+        // Agents & costs must be tied together, create copies as to not overwrite data
+        final List<T> agents_co = List.copyOf(agents);
+        final double[] costs_co = Arrays.copyOf(costs, costs.length);
 
-    /**
-     * @return List of agents of the current generation
-     */
-    List<Agent<T>> getPopulation();
-
-    /**
-     * Initializes the population with randomized agents
-     *
-     * This function should only be called once per population.
-     * The implementing function should ensure the fitness array is initialized as well.
-     *
-     * TODO: Determine if Population should be a class with this as the constructor
-     *
-     * @param agentCount Size of the population
-     */
-    void populate(final int agentCount);
+        // Sadly sorting via a comparator requires integers to be boxed
+        final Integer[] indexes = (Integer[]) IntStream.range(0, costs.length).boxed()
+                .sorted(Comparator.comparingDouble(i -> costs[i])).toArray();
+        for (int i = 0; i < costs.length; i++)
+        {
+            final int j = indexes[i];
+            agents.set(i, agents_co.get(j));
+            costs[i] = costs_co[j];
+        }
+    }
 
     /**
      * Gathers statistics regarding the population's genes
@@ -84,9 +99,8 @@ public interface Population<T>
      *
      * @return statistics for every gene of the population
      */
-    default IntSummaryStatistics[] geneEvaluation()
+    public IntSummaryStatistics[] geneEvaluation()
     {
-        final List<Agent<T>> agents = getPopulation();
         if (agents.isEmpty()) throw new IllegalStateException("Cannot evaluate uninitialized population.");
         final int numWeights = agents.get(0).getWeights().length;
         // Create a statistics object for every single weight
@@ -105,17 +119,25 @@ public interface Population<T>
         return stats;
     }
 
-    default void advanceGeneration()
+    /**
+     * Retrieves fitness values for each agent
+     *
+     * Fitness values run parallel with indexes of agents in the population.
+     * This method should not be called until a fitness test is performed that generation.
+     *
+     * @return Fitness values assigned to each agent
+     * @see Population#performFitnessTest(ToDoubleFunction)
+     */
+    public double[] getFitnessCosts()
     {
-        /*
-        TODO:
-        Step 1) Perform a fitness test
-        Step 2) Cull the population
-        Step 3) Apply a gradient to the culling process
-        e.g. FLAT completely severs the population in half
-         */
+        return costs;
     }
 
-    void sortPopulation(); // TODO: Unsure if this is the route to go
-    void cullPopulation(); // TODO: Parameter could be a 'CullingMethod'
+    /**
+     * @return List of agents of the current generation
+     */
+    public List<T> getPopulation()
+    {
+        return agents;
+    }
 }
