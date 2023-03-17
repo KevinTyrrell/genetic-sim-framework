@@ -18,7 +18,10 @@
 
 package util;
 
+import java.util.List;
+
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 
 public final class Utilities
@@ -99,5 +102,37 @@ public final class Utilities
     public static double normalize(final double x, final double min, final double max)
     {
         return (validateDomain(x, min, max) - min) / (max - min);
+    }
+
+    /**
+     * @param arr Array to search
+     * @return minimum element in the array
+     */
+    public static double min(final double[] arr)
+    {
+        if (requireNonNull(arr).length <= 0) throw new IllegalArgumentException("Minimum element not present");
+        double min = arr[0];
+        for (int i = 1; i < arr.length; i++)
+        {
+            final double e = arr[i];
+            if (e < min) min = e;
+        }
+        return min;
+    }
+
+    /**
+     * @param arr Array to search
+     * @return maximum element in the array
+     */
+    public static double max(final double[] arr)
+    {
+        if (requireNonNull(arr).length <= 0) throw new IllegalArgumentException("Maximum element not present");
+        double max = arr[0];
+        for (int i = 1; i < arr.length; i++)
+        {
+            final double e = arr[i];
+            if (e > max) max = e;
+        }
+        return max;
     }
 }
