@@ -20,6 +20,8 @@ package util;
 
 import java.util.List;
 
+import static java.lang.Math.pow;
+import static java.lang.StrictMath.E;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
@@ -134,5 +136,18 @@ public final class Utilities
             if (e > max) max = e;
         }
         return max;
+    }
+
+    /**
+     * Performs the sigmoid function on a number
+     *
+     * See: https://en.wikipedia.org/wiki/Sigmoid_function
+     *
+     * @param num Number to apply the function on
+     * @return resultant number
+     */
+    public static double sigmoid(final double num)
+    {
+        return 1 / (1 + pow(E, -num));
     }
 }

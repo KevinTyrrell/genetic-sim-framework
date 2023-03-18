@@ -32,7 +32,7 @@ import static util.Utilities.*;
 
 public final class BirdshotGradient<T extends Agent<T>> implements Gradient<T>
 {
-    private final float choke;
+    private final float scalar;
     private final Random generator;
 
     /**
@@ -42,19 +42,15 @@ public final class BirdshotGradient<T extends Agent<T>> implements Gradient<T>
      * performing agents have to be randomly selected to be destroyed/survive.
      * A higher choke will scale chances across the set linearly.
      *
-     * For example, a choke of 0.05f (5%) would dictate the top performing agent
-     * having a 5% chance of being selected to be destroyed. The bottom performing
-     * agent would have a (100 - x)% chance (95%) of being selected to survive.
      *
-     * A choke of zero will yield no chance for the top performing agent to be
-     * destroyed and for the lowest performing agent to survive.
      *
      * @param choke Choke percentage to control the gradient
      */
-    public BirdshotGradient(final Random generator, final float choke)
+    public BirdshotGradient(final Random generator, final float scalar)
     {
         this.generator = requireNonNull(generator);
-        this.choke = validateDomain(choke, 0.0f, 1.0f);
+        if (scalar < 1) throw new IllegalArgumentException("Scalar must be positive and greater than one");
+        this.scalar = scalar;
     }
 
     /**
@@ -73,19 +69,21 @@ public final class BirdshotGradient<T extends Agent<T>> implements Gradient<T>
         final double[] costs = pop.getFitnessCosts();
         final int numAgents = agents.size();
         final double min = min(costs), max = max(costs);
-        final float scalar = 1.0f - 2 * choke;
         for (int i = 0; i < numAgents; i++)
-            // Ensure costs domain becomes [choke, 1.0 - choke]
-            costs[i] = choke + normalize(costs[i], min, max) * scalar;
+            /* 1) Normalize numbers so they fall in ranges [0.0, 1.0]. 2) Subtract 0.5 so the mean of the
+             * numbers is adjusted. 3) Scale the numbers by a scalar to create a more dramatic swing in the
+             * sigmoid function. 4) Apply the sigmoid function to favor outsiders more than insiders. */
+            costs[i] = sigmoid((normalize(costs[i], min, max) - 0.5) * scalar);
 
         /* Elite & Non Elite: Top & bottom performing half of the population.
         Unlucky & Lucky: Agents who are randomly selected to die & live despite performance. */
         final LinkedList<T> elite = new LinkedList<>(), nonElite = new LinkedList<>(),
                 unlucky = new LinkedList<>(), lucky = new LinkedList<>();
-        decideFates(agents, costs, elite, unlucky, 0, numAgents / 2 - 1);
-        decideFates(agents, costs, nonElite, lucky, numAgents / 2, numAgents - 1);
+        unluckyDeaths(agents, costs, elite, unlucky);
+        luckyRebirths(agents, costs, nonElite, lucky);
+
         final int ulCount = unlucky.size(), luCount = lucky.size();
-        // If elite & non-elite *would* be unbalanced, change fates of average performing agents until at equilibrium
+        // If elite & non-elite would be unbalanced, change fates of average performing agents until at equilibrium
         if (ulCount > luCount)
             for (int i = ulCount - luCount; i > 0; i--)
                 elite.add(nonElite.removeFirst());
@@ -95,15 +93,17 @@ public final class BirdshotGradient<T extends Agent<T>> implements Gradient<T>
         agents.clear(); Stream.of(elite, lucky, nonElite, unlucky).forEach(agents::addAll);
     }
 
-    // Randomly determines if the fate of each agent should change
-    private void decideFates(final List<T> l, final double[] c,
-                             final List<T> a, final List<T> b, final int s, final int e)
+    // Categorized the front-half agents as 'alive' or, when very unlucky, 'dead'
+    private void unluckyDeaths(final List<T> l, final double[] c, final List<T> a, final List<T> b)
     {
-        for (int i = s; i <= e; i++)
-        {
-            final T agent = l.get(i);
-            // If the normalized cost is less than our random value, the agent's fate is changed
-            if (c[i] < generator.nextDouble()) b.add(agent); else a.add(agent);
-        }
+        for (int i = c.length / 2 - 1; i >= 0; i--)
+            if (c[i] < generator.nextDouble()) a.add(l.get(i)); else b.add(l.get(i));
+    }
+
+    // Categorize the back-half agents as 'dead' or, when very lucky, 'alive'
+    private void luckyRebirths(final List<T> l, final double[] c, final List<T> a, final List<T> b)
+    {
+        for (int i = c.length / 2; i < c.length; i++)
+            if (c[i] > generator.nextDouble()) a.add(l.get(i)); else b.add(l.get(i));
     }
 }

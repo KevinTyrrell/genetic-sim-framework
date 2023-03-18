@@ -28,7 +28,7 @@ import java.util.stream.IntStream;
 import static java.util.Objects.requireNonNull;
 
 
-public abstract class Population<T extends Agent<T>>
+public class Population<T extends Agent<T>>
 {
     private final List<T> agents;
     private final double[] costs;
@@ -41,7 +41,7 @@ public abstract class Population<T extends Agent<T>>
         costs = new double[numAgents];
         agents = new ArrayList<>(numAgents);
         for (int i = 0; i < numAgents; i++)
-            agents.set(i, requireNonNull(init.get()));
+            agents.add(requireNonNull(init.get()));
     }
 
     /**
@@ -50,8 +50,6 @@ public abstract class Population<T extends Agent<T>>
      * A cost function is applied to each agent, which should return their score.
      * The score determines their likelihood of survival and must be of the domain: [0.0, ∞).
      * A flawless agent will have a score of 0.0. Scores should increase if the agent is flawed.
-     *
-     * TODO: Change cost function parameter to a CostFunction object
      *
      * @param costFunc Callback cost function to be applied to each agent
      * @see Population#getFitnessCosts()
@@ -80,11 +78,12 @@ public abstract class Population<T extends Agent<T>>
         final double[] costs_co = Arrays.copyOf(costs, costs.length);
 
         // Sadly sorting via a comparator requires integers to be boxed
-        final Integer[] indexes = (Integer[]) IntStream.range(0, costs.length).boxed()
-                .sorted(Comparator.comparingDouble(i -> costs[i])).toArray();
+        final List<Integer> indexes = IntStream.range(0, costs.length).boxed()
+                .sorted(Comparator.comparingDouble(i -> costs[i]))
+                .toList();
         for (int i = 0; i < costs.length; i++)
         {
-            final int j = indexes[i];
+            final int j = indexes.get(i);
             agents.set(i, agents_co.get(j));
             costs[i] = costs_co[j];
         }
