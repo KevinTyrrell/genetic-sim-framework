@@ -26,7 +26,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.ToIntFunction;
+
+import static java.lang.Math.min;
+import static java.lang.Runtime.getRuntime;
+import static java.util.Objects.requireNonNull;
+
 
 /**
  * Defines a simulation in which agents, perform, are assessed,
@@ -47,36 +51,16 @@ public interface Simulation<T extends Agent<T>>
     T initAgent();
 
     /**
-     * Performs a specified mutation on an agent.
-     * This function will only be called after an
-     * agent has inherited genes from his parents.
-     * 
-     * This function should mutate the agent's genes
-     * to ensure a healthy balance of genetic diversity.
-     * 
-     * @param agent Agent to be mutated.
-     */
-    void mutateAgent(final Agent agent);
-
-    /**
-     * Creates a new cost function.
-     * Multiple cost functions are created if the simulation is multithreaded.
-     * The cost function(s) created should never used shared resources.
-     * 
-     * @return Cost function which assesses agents.
-     */
-    ToIntFunction<T> initCostFunc();
-
-    /**
-     * Callback function called each generation of the simulation.
-     * Summary statistics holds the average, min, and max cost of the generation.
-     * The generation number is also passed to the callback.
-     * By default, this method is empty but can be overridden.
+     * Callback function for agent fitness data, called each generation
      *
-     * @param iss Statistics of the costs for the generation.
-     * @param generation Current generation number.
+     * Summary statistics holds the average, min, and max fitness cost of the generation.
+     * The generation number is provided to the callback for reference.
+     * By default, this method is a stub, but can be overridden.
+     *
+     * @param dss Statistics of the costs for the generation
+     * @param generation Current generation number
      */
-    default void genCostStatsCallback(final IntSummaryStatistics iss, final int generation) { }
+    default void genCostStatsCallback(final DoubleSummaryStatistics dss, final int generation) { }
 
     /**
      * Performs a simulation on a specified population.
@@ -86,26 +70,18 @@ public interface Simulation<T extends Agent<T>>
      *  The remaining agents reproduce with each other and pass on genes.
      *  The newly birthed children are added into the population.
      *  This new population is closer to convergence than the last.
-     * 
-     * @param population Population of random agents to run the simulation with.
-     * @param generations Number of generations to continue the simulation.
+     *
+     *  TODO: Fix documentation
      */
-    default void run(final T[] population, final int generations, final Random generator, final boolean multiThreaded)
+    default void run(final Population<T> pop, final int generations, final Random generator, final boolean multiThreaded)
     {
-        Objects.requireNonNull(generator);
-        if (generations < 0)
-            throw new IllegalArgumentException("Generation parameter must be positive");
-        if (Objects.requireNonNull(population).length % 4 != 0)
-            throw new IllegalArgumentException("Population parameter size must be a factor of four");
-        /* Separate cost function work across multiple threads. */
-        final int numThreads = multiThreaded ? 
-                Math.min(Runtime.getRuntime().availableProcessors(), population.length) : 1;
-        final int agentsPerThread = population.length / numThreads;
-        
-        final int[] costs = new int[population.length];
-        /* We only care about the top half performing agents -- not the entire population. */
-        final PriorityQueue<Integer> sorted = new PriorityQueue<>(population.length, 
-                Comparator.comparingInt(o -> costs[o]));
+        requireNonNull(generator);
+        if (generations < 0) throw new IllegalArgumentException("Generation parameter must be positive");
+
+        /* Separate cost function work across multiple threads */
+        final int numAgents = requireNonNull(pop).size();
+        final int numThreads = multiThreaded ? min(getRuntime().availableProcessors(), numAgents) : 1;
+        final int agentsPerThread = numAgents / numThreads;
         
         for (int gen = 1; gen <= generations; gen++)
         {
@@ -113,39 +89,32 @@ public interface Simulation<T extends Agent<T>>
             final List<Future<?>> results = new ArrayList<>(numThreads);
             for (int i = 0; i < numThreads; i++)
             {
-                /* Each thread gets their own cost function so none step on each other's toes. */
-                final ToIntFunction<T> costFunc = initCostFunc();
-                final int j = i; // i must be final for inner class to use it.
+                final int j = i; // i must be final for anonymous inner class to use it
                 results.add(es.submit(() ->
                 {
                     final int startInc = j * agentsPerThread;
                     final int endExc = startInc + agentsPerThread
-                            /* In case work load is not evenly divisible, last thread picks up the slack. */
-                            + (j + 1 >= numThreads ? population.length - agentsPerThread * numThreads : 0);
+                            /* In case work load is not evenly divisible, last thread picks up the slack */
+                            + (j + 1 >= numThreads ? numAgents - agentsPerThread * numThreads : 0);
                     for (int k = startInc; k < endExc; k++)
-                        costs[k] = costFunc.applyAsInt(Objects.requireNonNull(population[k]));
+                        pop.evaluateFitness(k);
                 }));
             }
             
-            /* Ensure each thread completes normally. */
+            /* Ensure each thread completes normally */
             for (final Future<?> result : results)
                 try { result.get(); }
-                catch (final ExecutionException e)
-                { throw new RuntimeException(e); }
+                catch (final ExecutionException e) { throw new RuntimeException(e); }
                 catch (final InterruptedException ignored) { }
             es.shutdown();
             
-            /* Determine how well the population performed. */
-            final IntSummaryStatistics iss = new IntSummaryStatistics();
-            for (int i = 0; i < population.length; i++) iss.accept(costs[i]);
-            genCostStatsCallback(iss, gen);
+            /* Broadcast the performance of the current generation */
+            genCostStatsCallback(pop.costEvaluation(), gen);
             
-            /* Heap sort half of the population. */
+            /* Heap sort half of the population */
             for (int i = 0; i < population.length; i++) sorted.add(i);
             assert sorted.peek() != null;
             for (int weight : population[sorted.peek()].getWeights())
-                System.out.printf("%.0f%%     ", ((double)weight / Integer.MAX_VALUE) * 100);
-            System.out.println();
             final int halfPop = population.length / 2;
             final Object[] parents = new Object[halfPop];
             for (int i = 0; i < halfPop; i++)

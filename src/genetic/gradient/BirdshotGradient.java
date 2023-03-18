@@ -42,9 +42,12 @@ public final class BirdshotGradient<T extends Agent<T>> implements Gradient<T>
      * performing agents have to be randomly selected to be destroyed/survive.
      * A higher choke will scale chances across the set linearly.
      *
+     * The scalar for the sigmoid function controls how dramatically numbers are pushed
+     * towards the edge of the domain. Very small/large numbers wil be decreased/increased
+     * more than numbers near the mean. Scalar domain is [1, inf), recommended: 10
      *
-     *
-     * @param choke Choke percentage to control the gradient
+     * @param generator Random sequence generator
+     * @param scalar Scalar for the sigmoid function
      */
     public BirdshotGradient(final Random generator, final float scalar)
     {

@@ -19,21 +19,34 @@
 package genetic;
 
 import genetic.agent.Agent;
+import genetic.gene.Crossover;
+import genetic.gene.Mutation;
 
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.function.ToDoubleFunction;
 import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
+import static util.Utilities.validateDomain;
 
 
-public class Population<T extends Agent<T>>
+public abstract class Population<T extends Agent<T>>
 {
     private final List<T> agents;
     private final double[] costs;
+    private final Crossover crosser;
+    private final Mutation mutator;
 
-    public Population(final int numAgents, final Supplier<T> init)
+    /**
+     * Constructs a population of agents
+     *
+     * @param numAgents Number of agents in the population
+     * @param init Constructor for initializing agents
+     * @param crosser Strategy for crossing genes
+     * @param mutator Strategy for mutating genes
+     */
+    public Population(final int numAgents, final Supplier<T> init,
+                      final Crossover crosser, final Mutation mutator)
     {
         if (numAgents < 0 || numAgents % 4 != 0)
             throw new IllegalArgumentException("Population size must be positive and a multiple of four");
@@ -42,27 +55,42 @@ public class Population<T extends Agent<T>>
         agents = new ArrayList<>(numAgents);
         for (int i = 0; i < numAgents; i++)
             agents.add(requireNonNull(init.get()));
+        this.crosser = requireNonNull(crosser);
+        this.mutator = requireNonNull(mutator);
     }
 
     /**
-     * Performs a fitness test, assessing the performance of all agents
+     * Constructs a population of agents
      *
-     * A cost function is applied to each agent, which should return their score.
-     * The score determines their likelihood of survival and must be of the domain: [0.0, ∞).
-     * A flawless agent will have a score of 0.0. Scores should increase if the agent is flawed.
+     * By default, uses uniform crossover and uniform mutation for genes
      *
-     * @param costFunc Callback cost function to be applied to each agent
-     * @see Population#getFitnessCosts()
+     * @param numAgents Number of agents in the population
+     * @param init Constructor for initializing agents
      */
-    public void performFitnessTest(final ToDoubleFunction<Agent<T>> costFunc)
+    public Population(final int numAgents, final Supplier<T> init)
     {
-        requireNonNull(costFunc);
-        for (int i = 0; i < costs.length; i++)
-        {
-            final double cost = costFunc.applyAsDouble(agents.get(i));
-            if (cost < 0) throw new IllegalArgumentException("Cost function output must be non-negative");
-            costs[i] = cost;
-        }
+        this(numAgents, init, Crossover.UNIFORM, Mutation.UNIFORM);
+    }
+
+    /**
+     * Evaluates a specified agent for their fitness aptitude
+     *
+     * The cost function should return a value of domain [0, inf).
+     * A cost of 0 signifies a perfect score, the top percentile.
+     * Poor performance should result in higher fitness values.
+     *
+     * @param agent Agent to test
+     * @return fitness cost for the agent
+     */
+    public abstract double evaluateFitness(final T agent);
+
+    /**
+     * @param index Index of the agent to evaluate
+     * @see Population#evaluateFitness(Agent)
+     */
+    public void evaluateFitness(final int index)
+    {
+        costs[validateDomain(index, 0, costs.length - 1)] = evaluateFitness(agents.get(index));
     }
 
     /**
@@ -87,6 +115,16 @@ public class Population<T extends Agent<T>>
             agents.set(i, agents_co.get(j));
             costs[i] = costs_co[j];
         }
+    }
+
+    /**
+     * TODO: Add doc
+     *
+     * TODO: Add additional parameter for mating pairing strategies
+     */
+    public void repopulate()
+    {
+
     }
 
     /**
@@ -119,13 +157,26 @@ public class Population<T extends Agent<T>>
     }
 
     /**
+     * Calculates statistics based on current fitness cost data across the population
+     *
+     * This method should be called after fitness evaluations and  before a gradient is applied/re-population
+     *
+     * @return Fitness cost statistics
+     */
+    public DoubleSummaryStatistics costEvaluation()
+    {
+        final DoubleSummaryStatistics dss = new DoubleSummaryStatistics();
+        for (double cost : costs) dss.accept(cost);
+        return dss;
+    }
+
+    /**
      * Retrieves fitness values for each agent
      *
      * Fitness values run parallel with indexes of agents in the population.
      * This method should not be called until a fitness test is performed that generation.
      *
      * @return Fitness values assigned to each agent
-     * @see Population#performFitnessTest(ToDoubleFunction)
      */
     public double[] getFitnessCosts()
     {
@@ -139,4 +190,9 @@ public class Population<T extends Agent<T>>
     {
         return agents;
     }
+
+    /**
+     * @return number of agents in the population
+     */
+    public int size() { return costs.length; }
 }
