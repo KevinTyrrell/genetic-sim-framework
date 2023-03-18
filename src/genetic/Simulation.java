@@ -19,7 +19,7 @@
 package genetic;
 
 import genetic.agent.Agent;
-import genetic.gene.Crossover;
+import genetic.gradient.Gradient;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -41,16 +41,6 @@ import static java.util.Objects.requireNonNull;
 public interface Simulation<T extends Agent<T>>
 {
     /**
-     * Constructs a blank agent
-     *
-     * The returned agent should not assign values for its weights,
-     * as callers of this method will overwrite the agent's weights.
-     * 
-     * @return Newly created agent
-     */
-    T initAgent();
-
-    /**
      * Callback function for agent fitness data, called each generation
      *
      * Summary statistics holds the average, min, and max fitness cost of the generation.
@@ -63,17 +53,24 @@ public interface Simulation<T extends Agent<T>>
     default void genCostStatsCallback(final DoubleSummaryStatistics dss, final int generation) { }
 
     /**
-     * Performs a simulation on a specified population.
-     * For each generation, the following will be performed:
-     *  Each agent will be passed through the cost function.
-     *  The top half best performing agents are chosen to live.
-     *  The remaining agents reproduce with each other and pass on genes.
-     *  The newly birthed children are added into the population.
-     *  This new population is closer to convergence than the last.
+     * Performs a simulation on the specified population
      *
-     *  TODO: Fix documentation
+     * Each generation, the following will occur:
+     *      * Agents will be passed through a fitness function
+     *      * Half of the worst performing agents will be destroyed
+     *      * A few lucky/unlucky agents will have their fate swapped from the gradient
+     *      * The remaining agents will repopulate the destroyed half of the population
+     *      * Crossover and mutations will affect the child's genes
+     * Ideally, each generation will be closer to convergence than the last.
+     *
+     * @param pop Population of agents
+     * @param generations Generations to iterate before stopping
+     * @param generator Random sequence generator
+     * @param gradient Population gradient for genetic diversity
+     * @param multiThreaded True if all CPU cores should be utilized
      */
-    default void run(final Population<T> pop, final int generations, final Random generator, final boolean multiThreaded)
+    default void run(final Population<T> pop, final int generations, final Random generator,
+                     final Gradient<T> gradient, final boolean multiThreaded)
     {
         requireNonNull(generator);
         if (generations < 0) throw new IllegalArgumentException("Generation parameter must be positive");
@@ -110,35 +107,10 @@ public interface Simulation<T extends Agent<T>>
             
             /* Broadcast the performance of the current generation */
             genCostStatsCallback(pop.costEvaluation(), gen);
-            
-            /* Heap sort half of the population */
-            for (int i = 0; i < population.length; i++) sorted.add(i);
-            assert sorted.peek() != null;
-            for (int weight : population[sorted.peek()].getWeights())
-            final int halfPop = population.length / 2;
-            final Object[] parents = new Object[halfPop];
-            for (int i = 0; i < halfPop; i++)
-                //noinspection ConstantConditions
-                parents[i] = population[sorted.poll()];
-            
-            /* Repopulate the agent population. */
-            for (int i = 0; i < halfPop; i++)
-            {
-                @SuppressWarnings("unchecked")
-                final T father = (T)parents[i];
-                population[i] = father;
-                /* Randomly pick a mother among the remaining population. */
-                final int offset = 1 + generator.nextInt(halfPop - 1);
-                @SuppressWarnings("unchecked")
-                final T mother = (T)parents[(i + offset) % halfPop];
-                assert father != mother; // Should be impossible.
-                final T child = initAgent();
-                child.inherit(father, mother, generator, Crossover.UNIFORM);
-                mutateAgent(child);
-                population[i + halfPop] = child;
-            }
-            
-            sorted.clear();
+
+            pop.sortPopulation();
+            gradient.apply(pop);
+            pop.repopulate();
         }
     }
 }

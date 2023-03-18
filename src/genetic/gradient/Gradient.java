@@ -24,6 +24,7 @@ import genetic.agent.Agent;
 
 public interface Gradient<T extends Agent<T>>
 {
+
     /**
      * Applies the gradient to the population
      *

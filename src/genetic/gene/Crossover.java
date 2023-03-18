@@ -18,8 +18,6 @@
 
 package genetic.gene;
 
-import util.Utilities;
-
 import java.util.Random;
 
 import static java.util.Objects.requireNonNull;
@@ -31,7 +29,7 @@ import static util.Utilities.validateDomain;
  *
  * Crossover handles inheritance of genes from a mother and father to a child
  *
- * TODO: Add more Crossover constants
+ * TODO: Implement Single-point, two-point, uniform, arithmetic, simulated binary, blend, discrete crossovers
  */
 public interface Crossover
 {
@@ -56,7 +54,6 @@ public interface Crossover
             a >>= 1;
             b >>= 1;
         }
-
         return c;
     };
 

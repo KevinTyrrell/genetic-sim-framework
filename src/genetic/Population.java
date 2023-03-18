@@ -23,9 +23,9 @@ import genetic.gene.Crossover;
 import genetic.gene.Mutation;
 
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
+import static java.util.Collections.shuffle;
 import static java.util.Objects.requireNonNull;
 import static util.Utilities.validateDomain;
 
@@ -34,29 +34,33 @@ public abstract class Population<T extends Agent<T>>
 {
     private final List<T> agents;
     private final double[] costs;
+    private final Random generator;
     private final Crossover crosser;
     private final Mutation mutator;
+    private final float mutationRate;
 
     /**
      * Constructs a population of agents
      *
      * @param numAgents Number of agents in the population
-     * @param init Constructor for initializing agents
+     * @param generator Random sequence generator
      * @param crosser Strategy for crossing genes
      * @param mutator Strategy for mutating genes
+     * @param mutationRate Rate in which mutations occur in child genes [0.0, 1.0]
      */
-    public Population(final int numAgents, final Supplier<T> init,
-                      final Crossover crosser, final Mutation mutator)
+    public Population(final int numAgents, final Random generator,
+                      final Crossover crosser, final Mutation mutator, final float mutationRate)
     {
         if (numAgents < 0 || numAgents % 4 != 0)
             throw new IllegalArgumentException("Population size must be positive and a multiple of four");
-        requireNonNull(init);
         costs = new double[numAgents];
         agents = new ArrayList<>(numAgents);
         for (int i = 0; i < numAgents; i++)
-            agents.add(requireNonNull(init.get()));
+            agents.add(requireNonNull(initAgent()));
+        this.generator = requireNonNull(generator);
         this.crosser = requireNonNull(crosser);
         this.mutator = requireNonNull(mutator);
+        this.mutationRate = validateDomain(mutationRate, 0f, 1f);
     }
 
     /**
@@ -65,11 +69,11 @@ public abstract class Population<T extends Agent<T>>
      * By default, uses uniform crossover and uniform mutation for genes
      *
      * @param numAgents Number of agents in the population
-     * @param init Constructor for initializing agents
+     * @param generator Random sequence generator
      */
-    public Population(final int numAgents, final Supplier<T> init)
+    public Population(final int numAgents, final Random generator)
     {
-        this(numAgents, init, Crossover.UNIFORM, Mutation.UNIFORM);
+        this(numAgents, generator, Crossover.UNIFORM, Mutation.UNIFORM, 0.15f);
     }
 
     /**
@@ -83,6 +87,8 @@ public abstract class Population<T extends Agent<T>>
      * @return fitness cost for the agent
      */
     public abstract double evaluateFitness(final T agent);
+
+    public abstract T initAgent();
 
     /**
      * @param index Index of the agent to evaluate
@@ -118,13 +124,40 @@ public abstract class Population<T extends Agent<T>>
     }
 
     /**
-     * TODO: Add doc
+     * Re-populates the population, destroying the lesser half of agents
      *
-     * TODO: Add additional parameter for mating pairing strategies
+     * All agents in the bottom half of the population list will be destroyed.
+     * Agents within the top half of the population will be subject to re-population.
+     * Birthed children will inherit genes from their parents according to the crosser.
+     * Children's genes will be mutated according to the mutator and mutation rate.
+     *
+     * TODO: Allow for mating strategies, to diversify how the population is re-made
+     *
+     * 'sortPopulation' must be called before this method is called.
+     *
+     * @see Population#sortPopulation()
      */
     public void repopulate()
     {
+        final int half = costs.length / 2;
+        final List<T> parents = agents.subList(0, half),
+                children = agents.subList(half, costs.length);
+        shuffle(parents, generator); // Promote genetic diversity by shuffling ONLY the parents
+        for (int i = 0; i < half; i++)
+        {
+            final T father = parents.get(i);
+            /* Randomly pick a mother among the remaining population */
+            final int offset = 1 + generator.nextInt(half - 1);
+            final T mother = parents.get((i + offset) % offset);
+            final T child = initAgent();
+            child.inherit(father, mother, generator, crosser);
 
+            // Mutate the child's genes according to the mutator & rate
+            final int[] genes = child.getWeights();
+            for (int j = 0; j < genes.length; j++)
+                genes[j] = mutator.perform(genes[j], generator, mutationRate);
+            children.set(i, child);
+        }
     }
 
     /**
