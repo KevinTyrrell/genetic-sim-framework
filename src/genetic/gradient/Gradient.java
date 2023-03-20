@@ -18,7 +18,7 @@
 
 package genetic.gradient;
 
-import genetic.Population;
+import genetic.population.Population;
 import genetic.agent.Agent;
 
 

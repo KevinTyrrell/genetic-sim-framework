@@ -20,6 +20,7 @@ package genetic;
 
 import genetic.agent.Agent;
 import genetic.gradient.Gradient;
+import genetic.population.Population;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
