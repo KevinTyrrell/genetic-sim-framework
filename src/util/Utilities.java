@@ -150,4 +150,20 @@ public final class Utilities
     {
         return 1 / (1 + pow(E, -num));
     }
+
+    /**
+     * Swaps two elements in a list
+     *
+     * @param l List to be mutated
+     * @param a Index of an element to be swapped
+     * @param b Index of an element to be swapped
+     * @param <T> List type
+     */
+    public static <T> void swap(final List<T> l, final int a, final int b)
+    {
+        final int size = l.size();
+        final T o = l.get(validateDomain(a, 0, size));
+        l.set(a, l.get(validateDomain(b, 0, size)));
+        l.set(b, o);
+    }
 }

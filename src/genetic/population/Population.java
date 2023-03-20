@@ -35,6 +35,7 @@ public abstract class Population<T extends Agent<T>>
     private final List<T> agents;
     private final double[] costs;
     private final Random generator;
+    private final Repopulator repopulator;
     private final Crossover crosser;
     private final Mutation mutator;
     private final float mutationRate;
@@ -48,7 +49,7 @@ public abstract class Population<T extends Agent<T>>
      * @param mutator Strategy for mutating genes
      * @param mutationRate Rate in which mutations occur in child genes [0.0, 1.0]
      */
-    public Population(final int numAgents, final Random generator,
+    public Population(final int numAgents, final Random generator, final Repopulator repopulator,
                       final Crossover crosser, final Mutation mutator, final float mutationRate)
     {
         if (numAgents < 0 || numAgents % 4 != 0)
@@ -58,6 +59,7 @@ public abstract class Population<T extends Agent<T>>
         for (int i = 0; i < numAgents; i++)
             agents.add(requireNonNull(initAgent()));
         this.generator = requireNonNull(generator);
+        this.repopulator = requireNonNull(repopulator);
         this.crosser = requireNonNull(crosser);
         this.mutator = requireNonNull(mutator);
         this.mutationRate = validateDomain(mutationRate, 0f, 1f);
@@ -73,7 +75,8 @@ public abstract class Population<T extends Agent<T>>
      */
     public Population(final int numAgents, final Random generator)
     {
-        this(numAgents, generator, Crossover.UNIFORM, Mutation.UNIFORM, 0.15f);
+        this(numAgents, generator, Repopulator.TWO_PASS_FISCHER_YATES,
+                Crossover.UNIFORM, Mutation.UNIFORM, 0.15f);
     }
 
     /**
@@ -131,33 +134,22 @@ public abstract class Population<T extends Agent<T>>
      * Birthed children will inherit genes from their parents according to the crosser.
      * Children's genes will be mutated according to the mutator and mutation rate.
      *
-     * TODO: Allow for mating strategies, to diversify how the population is re-made
-     *
      * 'sortPopulation' must be called before this method is called.
      *
      * @see Population#sortPopulation()
      */
     public void repopulate()
     {
-        final int half = costs.length / 2;
-        final List<T> parents = agents.subList(0, half),
-                children = agents.subList(half, costs.length);
-        shuffle(parents, generator); // Promote genetic diversity by shuffling ONLY the parents
-        for (int i = 0; i < half; i++)
+        repopulator.repopulate(this, generator, (f, m) ->
         {
-            final T father = parents.get(i);
-            /* Randomly pick a mother among the remaining population */
-            final int offset = 1 + generator.nextInt(half - 1);
-            final T mother = parents.get((i + offset) % offset);
             final T child = initAgent();
-            child.inherit(father, mother, generator, crosser);
-
+            child.inherit(f, m, generator, crosser);
             // Mutate the child's genes according to the mutator & rate
             final int[] genes = child.getWeights();
             for (int j = 0; j < genes.length; j++)
                 genes[j] = mutator.perform(genes[j], generator, mutationRate);
-            children.set(i, child);
-        }
+            return child;
+        });
     }
 
     /**
