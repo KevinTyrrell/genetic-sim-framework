@@ -25,7 +25,6 @@ import genetic.gene.Mutation;
 import java.util.*;
 import java.util.stream.IntStream;
 
-import static java.util.Collections.shuffle;
 import static java.util.Objects.requireNonNull;
 import static util.Utilities.validateDomain;
 

@@ -19,7 +19,6 @@
 package util;
 
 import java.util.List;
-
 import static java.lang.Math.pow;
 import static java.lang.StrictMath.E;
 import static java.lang.String.format;
