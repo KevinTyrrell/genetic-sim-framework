@@ -41,16 +41,31 @@ public final class AgentWeightFormatter
     private static final String ROW_FORMAT = ("%-" + MATRIX_CELL_WIDTH + "s")
             .repeat(CELL_COUNT - 1) + "%s";
 
-    /*
-        ..      02      03      04      05      06      07      08      09      10
-
-        11      12      13      14      15      16      17      18      19      20
-
-        ..      02      03      04      05      06      07      08      09      10
-
-        11      12      13      14      15      16      17      18      19      20
+    /**
+     * Formats the agent's weights into a human-readable matrix of values
+     *
+     * The matrix consists of alternating rows of headers and weight values.
+     * The header rows will appear as follows, with weight values directly underneath
+     *
+     *      ..      02      03      04      05      06      07      08      09      10
+     *
+     *      11      12      13      14      15      16      17      18      19      20
+     *
+     *      ..      02      03      04      05      06      07      08      09      10
+     *
+     *      11      12      13      14      15      16      17      18      19      20
+     *
+     * The first four rows consist of weights for hands that do not contain any Aces.
+     * The second four rows consist of weights for hands that contain at least one Ace.
+     * The percentages represent how likely an agent is to hit on that particular score.
+     *
+     * For example, if the Agent's hand was [Ace of Spades][7 of Diamonds], one would look
+     * at row 6 (index 5) at column 8 (index 7) and observe the percentage listed. If the
+     * percentage was 75%, this indicates the agent is 75% likely to hit on that particular hand.
+     *
+     * @param agent Agent to inspect
+     * @return Matrix of headers and weight percentages
      */
-
     public static String[] formatWeightMatrix(final Agent<?> agent)
     {
         final int SECTION_COUNT = CELL_COUNT * 2;
@@ -76,10 +91,6 @@ public final class AgentWeightFormatter
         final String[] header = buildHeader();
         for (int i = 0; i < ROW_COUNT / 4; i++)
         {
-            // i = 0
-            // formatted[0] & formatted[4]
-            // i = 1
-            // formatted[2] & formatted[6]
             final Object[] row = copyOfRange(header, i * CELL_COUNT, (i + 1) * CELL_COUNT);
             final String f = String.format(ROW_FORMAT, row);
             // Place two copies of the header, one for the hands without & with an ace in-hand
