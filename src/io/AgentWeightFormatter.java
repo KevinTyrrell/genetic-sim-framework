@@ -47,11 +47,11 @@ public final class AgentWeightFormatter
      * The matrix consists of alternating rows of headers and weight values.
      * The header rows will appear as follows, with weight values directly underneath
      *
-     *      ..      02      03      04      05      06      07      08      09      10
+     *      ..      ..      ..      04      05      06      07      08      09      10
      *
      *      11      12      13      14      15      16      17      18      19      20
      *
-     *      ..      02      03      04      05      06      07      08      09      10
+     *      .      02      03      04      05      06      07      08      09      10
      *
      *      11      12      13      14      15      16      17      18      19      20
      *
@@ -75,10 +75,13 @@ public final class AgentWeightFormatter
                 .mapToObj(w -> df.format(100 * (double)w / Integer.MAX_VALUE) + "%")
                 .toArray(String[]::new);
         values[0] = "??-" + Card.CARD_BACK_SYMBOL; // Indicate this section is hand values without an ace
+        values[1] = " "; values[2] = " "; // Special case, scores of 2 or 3 are impossible without an ace
         values[SECTION_COUNT] = new Card(Face.ACE, Suit.SPADES).toString(); // section with an ace
+        final int NO_VAL_COUNT = 3;
 
-        arraycopy(percentages, 0, values, 1, SECTION_COUNT - 1);
-        arraycopy(percentages, SECTION_COUNT - 1, values, SECTION_COUNT + 1, SECTION_COUNT - 1);
+        arraycopy(percentages, 0, values, NO_VAL_COUNT, SECTION_COUNT - NO_VAL_COUNT);
+        arraycopy(percentages, SECTION_COUNT - NO_VAL_COUNT, values,
+                SECTION_COUNT + 1, SECTION_COUNT - 1);
 
         final String[] formatted = new String[ROW_COUNT];
         for (int i = 1; i < ROW_COUNT; i += 2)
